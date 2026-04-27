@@ -1,23 +1,53 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["**/.env", "**/.env.*"],
+  "globalEnv": ["NODE_ENV", "CI"],
   "tasks": {
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "dependsOn": ["^build"]
     },
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", "build/**", ".next/**"]
+      "inputs": [
+        "src/**",
+        "tsconfig*.json",
+        "package.json",
+        "vite.config.*",
+        "tsup.config.*",
+        "nest-cli.json"
+      ],
+      "outputs": ["dist/**", "build/**", ".next/**", "!.next/cache/**"]
     },
     "lint": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "src/**",
+        "**/*.{ts,tsx,js,jsx,json}",
+        "eslint.config.*",
+        ".eslintrc*",
+        "package.json"
+      ],
       "outputs": []
     },
     "test": {
       "dependsOn": ["^build"],
+      "inputs": [
+        "src/**",
+        "test/**",
+        "tests/**",
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.spec.ts",
+        "vitest.config.*",
+        "jest.config.*"
+      ],
       "outputs": ["coverage/**"]
     },
     "typecheck": {
       "dependsOn": ["^build"],
+      "inputs": ["src/**", "**/*.{ts,tsx}", "tsconfig*.json"],
       "outputs": []
     },
     "clean": {

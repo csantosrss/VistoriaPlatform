@@ -1,0 +1,85 @@
+name: vistoria-platform
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: vistoria-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-vistoria}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vistoria}
+      POSTGRES_DB: ${POSTGRES_DB:-vistoria}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-vistoria} -d ${POSTGRES_DB:-vistoria}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - vistoria-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: vistoria-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vistoria-net
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: vistoria-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-vistoria}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-vistoria}
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MGMT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    networks:
+      - vistoria-net
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: vistoria-mailhog
+    restart: unless-stopped
+    ports:
+      - "${MAILHOG_SMTP_PORT:-1025}:1025"
+      - "${MAILHOG_UI_PORT:-8025}:8025"
+    networks:
+      - vistoria-net
+
+volumes:
+  postgres-data:
+  redis-data:
+  rabbitmq-data:
+
+networks:
+  vistoria-net:
+    name: vistoria-net
+    driver: bridge
