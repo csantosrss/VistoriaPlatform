@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+
+# Builds
+dist/
+build/
+.next/
+out/
+
+# Test & coverage
+coverage/
+*.lcov
+.nyc_output/
+
+# Turbo
+.turbo/
+
+# Environment
+.env
+.env.local
+.env.*.local
+appsettings.Development.json
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.idea/
+.vscode/
+.vs/
+*.user
+*.suo
+*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# .NET (legado)
+bin/
+obj/
