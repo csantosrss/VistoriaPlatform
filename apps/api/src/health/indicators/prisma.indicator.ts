@@ -1,26 +1,26 @@
 import { Injectable } from "@nestjs/common";
 import {
-  HealthIndicatorService,
+  HealthCheckError,
+  HealthIndicator,
   type HealthIndicatorResult,
 } from "@nestjs/terminus";
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 
 @Injectable()
-export class PrismaHealthIndicator {
-  constructor(
-    private readonly indicators: HealthIndicatorService,
-    private readonly prisma: PrismaService,
-  ) {}
+export class PrismaHealthIndicator extends HealthIndicator {
+  constructor(private readonly prisma: PrismaService) {
+    super();
+  }
 
   async isHealthy(key: string): Promise<HealthIndicatorResult> {
-    const indicator = this.indicators.check(key);
     try {
       await this.prisma.$queryRaw`SELECT 1`;
-      return indicator.up();
+      return this.getStatus(key, true);
     } catch (err) {
-      return indicator.down({
+      const result = this.getStatus(key, false, {
         message: err instanceof Error ? err.message : "Database unreachable",
       });
+      throw new HealthCheckError("Database check failed", result);
     }
   }
 }

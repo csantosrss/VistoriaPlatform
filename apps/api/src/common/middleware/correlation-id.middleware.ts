@@ -3,12 +3,6 @@ import type { Request, Response, NextFunction } from "express";
 import { v4 as uuidv4 } from "uuid";
 import { CORRELATION_ID_HEADER } from "../constants";
 
-declare module "express-serve-static-core" {
-  interface Request {
-    correlationId?: string;
-  }
-}
-
 @Injectable()
 export class CorrelationIdMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction): void {
