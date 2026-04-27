@@ -14,6 +14,7 @@ import { HealthModule } from "./health/health.module";
 import { AuthModule } from "./auth/auth.module";
 import { PrismaModule } from "./infrastructure/prisma/prisma.module";
 import { MessagingModule } from "./infrastructure/messaging/messaging.module";
+import { IntegrationsModule } from "@vistoria/integrations";
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { MessagingModule } from "./infrastructure/messaging/messaging.module";
     MessagingModule,
     AuthModule,
     HealthModule,
+    IntegrationsModule.forRoot(),
   ],
   providers: [TypedConfigService],
   exports: [TypedConfigService],

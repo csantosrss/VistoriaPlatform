@@ -26,6 +26,18 @@ export const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().min(1).default("15m"),
 
   SERVICE_NAME: z.string().min(1).default("vistoria-api"),
+
+  // --- Parceiros de integração (Sprint 03 IN) ---
+  PARTNER_HTTP_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
+  REDE_VISTORIAS_API_URL: z
+    .string()
+    .url()
+    .default("https://api.redevistorias.com.br"),
+  REDE_VISTORIAS_API_KEY: z.string().default(""),
+  REDE_VISTORIAS_WEBHOOK_SECRET: z.string().default(""),
+  CONCEITUAL_API_URL: z.string().url().default("https://api.conceitual.com.br"),
+  CONCEITUAL_API_KEY: z.string().default(""),
+  CONCEITUAL_WEBHOOK_SECRET: z.string().default(""),
 });
 
 export type Env = z.infer<typeof envSchema>;

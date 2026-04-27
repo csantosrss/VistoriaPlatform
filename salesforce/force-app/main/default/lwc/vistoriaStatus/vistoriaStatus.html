@@ -1,0 +1,23 @@
+<template>
+    <lightning-card title="Status da Vistoria" icon-name="standard:task">
+        <div class="slds-p-around_medium">
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Carregando status" size="small"></lightning-spinner>
+            </template>
+            <template if:false={isLoading}>
+                <template if:true={errorMessage}>
+                    <p class="slds-text-color_error">{errorMessage}</p>
+                </template>
+                <template if:false={errorMessage}>
+                    <p>
+                        <strong>Vistoria:</strong> {vistoriaId}
+                    </p>
+                    <p>
+                        <strong>Status:</strong>
+                        <lightning-badge label={statusLabel}></lightning-badge>
+                    </p>
+                </template>
+            </template>
+        </div>
+    </lightning-card>
+</template>
