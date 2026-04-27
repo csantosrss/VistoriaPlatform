@@ -1,0 +1,14 @@
+{
+  "extends": "@vistoria/config/tsconfig/node.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "noUncheckedIndexedAccess": false
+  },
+  "include": ["src/**/*", "test/**/*"],
+  "exclude": ["node_modules", "dist", "coverage"]
+}

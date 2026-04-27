@@ -1,0 +1,77 @@
+// Prisma schema — Vistoria Platform
+// Este sprint introduz apenas o esqueleto multi-tenant + auditoria.
+// As entidades de domínio (Vistoria, Imovel, Comodo, etc) serão adicionadas pelo
+// agente BE em sprints subsequentes, sempre com tenantId e seguindo o padrão de
+// tenant isolation definido em CLAUDE.md.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id        String   @id @default(uuid()) @db.Uuid
+  slug      String   @unique
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users     User[]
+  auditLogs AuditLog[]
+
+  @@map("tenants")
+}
+
+enum Role {
+  ADMIN
+  GESTOR
+  VISTORIADOR
+  CLIENTE
+  PARCEIRO
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @db.Uuid
+  email        String
+  name         String
+  passwordHash String?
+  roles        Role[]   @default([])
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  auditLogs    AuditLog[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("users")
+}
+
+model AuditLog {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @db.Uuid
+  userId        String?  @db.Uuid
+  action        String
+  resourceType  String
+  resourceId    String?
+  before        Json?
+  after         Json?
+  correlationId String?
+  ip            String?
+  userAgent     String?
+  createdAt     DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, resourceType, resourceId])
+  @@map("audit_logs")
+}
