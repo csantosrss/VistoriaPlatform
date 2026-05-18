@@ -31,6 +31,7 @@ export default {
         "integrations",
         "infra",
         "docs",
+        "adr",
         "ci",
         "deps",
         "release",
