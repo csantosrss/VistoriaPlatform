@@ -43,3 +43,6 @@ Thumbs.db
 # .NET (legado)
 bin/
 obj/
+
+# Protótipo inicial arquivado (.NET API + Vite standalone)
+_legacy/
