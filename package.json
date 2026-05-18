@@ -5,6 +5,9 @@
   "description": "Plataforma de Vistorias — Auxiliadora Predial (monorepo)",
   "scripts": {
     "dev": "turbo run dev",
+    "dev:up": "docker compose -f infra/docker-compose.yml --env-file infra/.env.example up -d --wait",
+    "dev:migrate": "pnpm --filter @vistoria/api prisma:migrate",
+    "dev:all": "pnpm dev:up && pnpm dev:migrate && pnpm dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
