@@ -9,6 +9,11 @@ export interface RsaKeyPair {
 
 const logger = new Logger("AuthKeys");
 
+// Singleton process-wide. Sem isso, JwtModule (signer) e JwtStrategy
+// (verifier) recebiam pares RSA diferentes em dev e a verificação
+// quebrava todas as rotas autenticadas com 401.
+let ephemeralCache: RsaKeyPair | null = null;
+
 export function resolveRsaKeyPair(input: {
   privateKey: string;
   publicKey: string;
@@ -26,6 +31,9 @@ export function resolveRsaKeyPair(input: {
       "JWT_PRIVATE_KEY and JWT_PUBLIC_KEY are required in production",
     );
   }
+  if (ephemeralCache) {
+    return ephemeralCache;
+  }
   logger.warn(
     "JWT keys not provided — generating an ephemeral RSA-2048 key pair (dev/test only). " +
       "Tokens issued by this instance will not be verifiable by other instances.",
@@ -35,5 +43,6 @@ export function resolveRsaKeyPair(input: {
     publicKeyEncoding: { type: "spki", format: "pem" },
     privateKeyEncoding: { type: "pkcs8", format: "pem" },
   });
-  return { privateKey, publicKey, ephemeral: true };
+  ephemeralCache = { privateKey, publicKey, ephemeral: true };
+  return ephemeralCache;
 }

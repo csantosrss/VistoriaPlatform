@@ -23,6 +23,7 @@ model Tenant {
 
   users     User[]
   auditLogs AuditLog[]
+  vistorias Vistoria[]
 
   @@map("tenants")
 }
@@ -48,6 +49,7 @@ model User {
 
   tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   auditLogs    AuditLog[]
+  vistoriasAtribuidas Vistoria[] @relation("VistoriadorAtribuido")
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -74,4 +76,79 @@ model AuditLog {
   @@index([tenantId, createdAt])
   @@index([tenantId, resourceType, resourceId])
   @@map("audit_logs")
+}
+
+enum StatusVistoria {
+  SOLICITADA
+  ROTEADA
+  AGENDADA
+  CONFIRMADA
+  EM_EXECUCAO
+  LAUDO_PENDENTE
+  LAUDO_APROVADO
+  CONCLUIDA
+  CANCELADA
+}
+
+enum TipoVistoria {
+  ENTRADA
+  SAIDA
+}
+
+model Vistoria {
+  id       String         @id @default(uuid()) @db.Uuid
+  tenantId String         @db.Uuid
+  status   StatusVistoria @default(SOLICITADA)
+  tipo     TipoVistoria
+
+  enderecoLogradouro  String
+  enderecoNumero      String
+  enderecoComplemento String?
+  enderecoBairro      String
+  enderecoCidade      String
+  enderecoUf          String  @db.VarChar(2)
+  enderecoCep         String  @db.VarChar(9)
+
+  contatoNome     String
+  contatoTelefone String
+  contatoEmail    String?
+  observacoes     String?
+
+  vistoriadorId   String? @db.Uuid
+  providerId      String?
+
+  agendadoPara    DateTime?
+  concluidoEm     DateTime?
+  canceladoEm     DateTime?
+  canceladoMotivo String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vistoriador User?               @relation("VistoriadorAtribuido", fields: [vistoriadorId], references: [id], onDelete: SetNull)
+  transicoes  VistoriaTransicao[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, vistoriadorId])
+  @@map("vistorias")
+}
+
+model VistoriaTransicao {
+  id            String          @id @default(uuid()) @db.Uuid
+  vistoriaId    String          @db.Uuid
+  tenantId      String          @db.Uuid
+  de            StatusVistoria?
+  para          StatusVistoria
+  motivo        String?
+  executadoPor  String?         @db.Uuid
+  correlationId String?
+  createdAt     DateTime        @default(now())
+
+  vistoria Vistoria @relation(fields: [vistoriaId], references: [id], onDelete: Cascade)
+
+  @@index([vistoriaId])
+  @@index([tenantId, createdAt])
+  @@map("vistoria_transicoes")
 }

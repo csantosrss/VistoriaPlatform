@@ -12,6 +12,7 @@ Histórico de sprints da Plataforma de Vistorias. Cada sprint produz um arquivo 
 | [SPRINT-04](./SPRINT-04.md) | Painel admin React + Tailwind + Shadcn                              | FE     | 2026-04-27 |
 | [SPRINT-05](./SPRINT-05.md) | Documentação consolidada (C4 + ERD, README, validação handoffs)     | DOC    | 2026-05-19 |
 | [SPRINT-06](./SPRINT-06.md) | E2E Playwright + bootstrap .env + CI endurecida + rename commitlint | QI     | 2026-05-19 |
+| [SPRINT-07](./SPRINT-07.md) | Auth real + CRUD Vistorias + audit endpoint + seed dev              | BE     | 2026-05-19 |
 
 ## Convenções
 

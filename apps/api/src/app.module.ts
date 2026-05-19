@@ -11,6 +11,8 @@ import { CorrelationIdMiddleware } from "./common/middleware/correlation-id.midd
 import { buildLoggerConfig } from "./common/logger/logger.config";
 import { HealthModule } from "./health/health.module";
 import { AuthModule } from "./auth/auth.module";
+import { AuditLogsModule } from "./audit-logs/audit-logs.module";
+import { VistoriasModule } from "./vistorias/vistorias.module";
 import { PrismaModule } from "./infrastructure/prisma/prisma.module";
 import { MessagingModule } from "./infrastructure/messaging/messaging.module";
 import { IntegrationsModule } from "@vistoria/integrations";
@@ -31,6 +33,8 @@ import { IntegrationsModule } from "@vistoria/integrations";
     MessagingModule,
     AuthModule,
     HealthModule,
+    AuditLogsModule,
+    VistoriasModule,
     IntegrationsModule.forRoot(),
   ],
 })

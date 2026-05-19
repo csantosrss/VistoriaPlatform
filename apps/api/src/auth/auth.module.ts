@@ -3,6 +3,9 @@ import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
 import { APP_GUARD } from "@nestjs/core";
 import { TypedConfigService } from "../config/typed-config.service";
+import { PrismaModule } from "../infrastructure/prisma/prisma.module";
+import { AuthController } from "./auth.controller";
+import { AuthService } from "./auth.service";
 import { JwtStrategy } from "./jwt.strategy";
 import { JwtGuard } from "./guards/jwt.guard";
 import { RolesGuard } from "./guards/roles.guard";
@@ -11,6 +14,7 @@ import { resolveRsaKeyPair } from "./keys";
 @Global()
 @Module({
   imports: [
+    PrismaModule,
     PassportModule.register({ defaultStrategy: "jwt" }),
     JwtModule.registerAsync({
       inject: [TypedConfigService],
@@ -38,11 +42,13 @@ import { resolveRsaKeyPair } from "./keys";
       },
     }),
   ],
+  controllers: [AuthController],
   providers: [
+    AuthService,
     JwtStrategy,
     { provide: APP_GUARD, useClass: JwtGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
-  exports: [JwtModule, PassportModule],
+  exports: [JwtModule, PassportModule, AuthService],
 })
 export class AuthModule {}
