@@ -1,2 +1,2 @@
-export * from "./vistoria";
-export * from "./webhooks";
+export * from "./vistoria/index.js";
+export * from "./webhooks/index.js";

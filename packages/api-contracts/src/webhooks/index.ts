@@ -1,9 +1,9 @@
-export * from "./rede-vistorias";
-export * from "./conceitual";
+export * from "./rede-vistorias.js";
+export * from "./conceitual.js";
 
-import type { StatusVistoria } from "../vistoria/status";
-import type { RedeVistoriasStatus } from "./rede-vistorias";
-import type { ConceitualStatus } from "./conceitual";
+import type { StatusVistoria } from "../vistoria/status.js";
+import type { RedeVistoriasStatus } from "./rede-vistorias.js";
+import type { ConceitualStatus } from "./conceitual.js";
 
 /** Mapping Rede Vistorias → enum unificado. */
 export const REDE_VISTORIAS_TO_STATUS: Readonly<
