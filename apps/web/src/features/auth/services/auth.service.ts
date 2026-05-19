@@ -1,31 +1,48 @@
 import { apiClient } from "@/lib/api-client";
-import type { LoginInput } from "../schemas/login.schema";
+import {
+  LoginResponseSchema,
+  MeResponseSchema,
+  type AuthUser,
+  type LoginRequest,
+  type LoginResponse,
+} from "@vistoria/api-contracts";
 
-export interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
+const TOKEN_KEY = "auth.access";
+const USER_KEY = "auth.user";
+
+export async function login(input: LoginRequest): Promise<LoginResponse> {
+  const { data } = await apiClient.post("/api/v1/auth/login", input);
+  return LoginResponseSchema.parse(data);
 }
 
-/**
- * Aguarda BE Sprint 03+ entregar `POST /api/v1/auth/login`.
- * Por enquanto, os campos esperados aqui são uma proposta a ser confirmada
- * via @vistoria/api-contracts quando o BE adicionar o schema.
- */
-export async function login(input: LoginInput): Promise<AuthTokens> {
-  const { data } = await apiClient.post<AuthTokens>(
-    "/api/v1/auth/login",
-    input,
-  );
-  return data;
+export async function fetchMe(): Promise<AuthUser> {
+  const { data } = await apiClient.get("/api/v1/auth/me");
+  return MeResponseSchema.parse(data);
 }
 
-export function persistTokens(tokens: AuthTokens): void {
-  localStorage.setItem("auth.access", tokens.accessToken);
-  localStorage.setItem("auth.refresh", tokens.refreshToken);
+export function persistSession(response: LoginResponse): void {
+  localStorage.setItem(TOKEN_KEY, response.access);
+  localStorage.setItem(USER_KEY, JSON.stringify(response.user));
 }
 
-export function clearTokens(): void {
-  localStorage.removeItem("auth.access");
-  localStorage.removeItem("auth.refresh");
+export function clearSession(): void {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+}
+
+export function getStoredToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function getStoredUser(): AuthUser | null {
+  const raw = localStorage.getItem(USER_KEY);
+  if (!raw) return null;
+  let json: unknown;
+  try {
+    json = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  const parsed = MeResponseSchema.safeParse(json);
+  return parsed.success ? parsed.data : null;
 }

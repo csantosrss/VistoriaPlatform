@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -6,20 +8,25 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { LoginForm } from "./components/LoginForm";
+import { getStoredToken } from "./services/auth.service";
 
 export function LoginPage() {
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const next = params.get("next");
+
+  useEffect(() => {
+    if (getStoredToken()) {
+      navigate(next ?? "/", { replace: true });
+    }
+  }, [navigate, next]);
+
   return (
     <div className="mx-auto max-w-sm">
       <Card>
         <CardHeader>
           <CardTitle>Acessar painel</CardTitle>
-          <CardDescription>
-            Use suas credenciais corporativas. O endpoint{" "}
-            <code className="rounded bg-muted px-1.5 py-0.5">
-              POST /api/v1/auth/login
-            </code>{" "}
-            será entregue pelo BE Sprint 03+.
-          </CardDescription>
+          <CardDescription>Use suas credenciais corporativas.</CardDescription>
         </CardHeader>
         <CardContent>
           <LoginForm />

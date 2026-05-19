@@ -3,27 +3,26 @@ import { loginSchema } from "./login.schema";
 
 describe("loginSchema", () => {
   const valid = {
-    email: "admin@auxiliadora.com.br",
-    password: "password123",
-    tenantSlug: "auxiliadora",
+    email: "admin@auxiliadorapredial.com.br",
+    password: "admin123",
   };
 
-  it("accepts valid input", () => {
+  it("aceita input válido", () => {
     expect(loginSchema.safeParse(valid).success).toBe(true);
   });
 
-  it("rejects invalid email", () => {
+  it("rejeita e-mail inválido", () => {
     const r = loginSchema.safeParse({ ...valid, email: "not-an-email" });
     expect(r.success).toBe(false);
   });
 
-  it("rejects short password", () => {
-    const r = loginSchema.safeParse({ ...valid, password: "short" });
+  it("rejeita senha curta (<6)", () => {
+    const r = loginSchema.safeParse({ ...valid, password: "abc" });
     expect(r.success).toBe(false);
   });
 
-  it("rejects tenant with uppercase", () => {
-    const r = loginSchema.safeParse({ ...valid, tenantSlug: "Auxiliadora" });
+  it("rejeita senha longa (>72)", () => {
+    const r = loginSchema.safeParse({ ...valid, password: "x".repeat(73) });
     expect(r.success).toBe(false);
   });
 });

@@ -33,8 +33,16 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem("auth.access");
-      // BE Sprint 03+ entregará refresh — por ora, apenas log
-      console.warn("401 from API; redirect to /login should happen here");
+      localStorage.removeItem("auth.user");
+      if (
+        typeof window !== "undefined" &&
+        window.location.pathname !== "/login"
+      ) {
+        const next = encodeURIComponent(
+          window.location.pathname + window.location.search,
+        );
+        window.location.href = `/login?next=${next}`;
+      }
     }
     return Promise.reject(error);
   },

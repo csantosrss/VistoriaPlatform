@@ -1,19 +1,19 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import {
-  login,
-  persistTokens,
-  type AuthTokens,
-} from "../services/auth.service";
-import type { LoginInput } from "../schemas/login.schema";
+import type { LoginRequest, LoginResponse } from "@vistoria/api-contracts";
+import { login, persistSession } from "../services/auth.service";
 
-export function useLogin() {
+export function useLogin(redirectTo?: string) {
   const navigate = useNavigate();
-  return useMutation<AuthTokens, Error, LoginInput>({
+  const queryClient = useQueryClient();
+  return useMutation<LoginResponse, Error, LoginRequest>({
     mutationFn: login,
-    onSuccess: (tokens) => {
-      persistTokens(tokens);
-      navigate("/");
+    onSuccess: (response) => {
+      persistSession(response);
+      // Pré-popula o cache do /me com o user já recebido no login,
+      // evitando uma segunda chamada redundante na primeira renderização.
+      queryClient.setQueryData(["auth", "me"], response.user);
+      navigate(redirectTo ?? "/", { replace: true });
     },
   });
 }
