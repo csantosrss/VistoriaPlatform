@@ -27,7 +27,7 @@ flowchart LR
         mh["MailHog<br/>:1025 / UI :8025"]
     end
 
-    web -- "REST JSON<br/>JWT" --> api
+    web -- "REST JSON + JWT<br/>(auth, vistorias, audit)" --> api
 
     api -.usa.-> contracts
     api -.usa.-> integrations
@@ -36,7 +36,8 @@ flowchart LR
     api -- "SQL via Prisma" --> pg
     api -- "cache + locks" --> redis
     api -- "publish<br/>vistoria.events" --> rmq
-    integrations -- "consume<br/>via subscriber" --> rmq
+    integrations -- "publish<br/>vistoria.status.changed" --> rmq
+    rmq -- "consume<br/>(planejado)" --> api
 
     integrations -- "HTTP + HMAC" --> rv
     integrations -- "HTTP + HMAC" --> cc
@@ -74,3 +75,18 @@ flowchart LR
 - Postgres exposto na porta **5433** no host (não 5432) para não conflitar com instalações nativas no Windows. Dentro da rede `vistoria-net`, continua em 5432.
 - `apps/api` lê `.env` para `DATABASE_URL`, `RABBITMQ_URL`, `REDIS_URL`; defaults batem com o `infra/.env.example`.
 - `apps/web` em dev usa proxy do Vite (`/api`, `/health`) para o `apps/api`; em produção precisa de `VITE_API_BASE_URL` absoluto.
+
+## Fluxos atuais entre containers
+
+| Origem                          | Destino                                                      | Protocolo / topic  | Quando entrou                                                                       |
+| ------------------------------- | ------------------------------------------------------------ | ------------------ | ----------------------------------------------------------------------------------- |
+| `apps/web` → `apps/api`         | REST `auth/login` + `auth/me`                                | HTTPS + JWT RS256  | Sprint 07 (BE) + Sprint 09 (FE consumiu)                                            |
+| `apps/web` → `apps/api`         | REST `vistorias` CRUD + `audit-logs`                         | HTTPS + JWT RS256  | Sprint 09 (FE consumiu)                                                             |
+| `apps/api` → Postgres           | Prisma                                                       | TCP (5432 interno) | Sprint 02 (BE)                                                                      |
+| `apps/api` → RabbitMQ           | publish `vistoria.events` (genérico)                         | AMQP               | Sprint 02 (BE)                                                                      |
+| `integrations` → RabbitMQ       | publish `vistoria.status.changed` no `vistoria.events` topic | AMQP               | Sprint 08 (IN — ver [ADR-013](../decisions/ADR-013-vistoria-status-writer-port.md)) |
+| RabbitMQ → `apps/api`           | consume `vistoria.status.changed` (handler)                  | AMQP               | **Planejado** (Sprint 11+ BE) — fecha o caminho webhook → SAGA                      |
+| Parceiro RV/CC → `integrations` | webhook HTTPS + HMAC                                         | HTTPS              | Sprint 03 (IN) / reescrito no Sprint 08                                             |
+| `integrations` → Parceiro RV/CC | REST + HMAC                                                  | HTTPS              | Sprint 03 (esqueleto); `agendar()` real ainda pendente do IN                        |
+
+A seta `RabbitMQ → apps/api` está tracejada com label "(planejado)" no diagrama — a queue já recebe mensagens publicadas pelo IN no Sprint 08, mas o handler do BE só será registrado quando o Sprint 11 (BE) consumir.

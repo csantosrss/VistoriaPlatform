@@ -45,21 +45,25 @@ Detalhes completos em [AGENTS.md](./AGENTS.md). Cada pasta possui um `CLAUDE.md`
 
 ## Subir o stack local
 
+Num clone limpo:
+
 ```bash
 pnpm install                    # instala dependências do monorepo
-cp infra/.env.example infra/.env       # opcional — só pra customizar
-cp apps/api/.env.example apps/api/.env # obrigatório antes do dev:all
-
-pnpm dev:all                    # docker --wait → prisma migrate → turbo dev
+pnpm dev:all                    # env:setup → docker --wait → prisma migrate → turbo dev
 ```
 
-`pnpm dev:all` encadeia três passos atômicos, todos disponíveis isolados:
+Não precisa mais copiar `.env` manualmente — `pnpm env:setup` (Sprint 06) cuida do bootstrap se os arquivos não existirem.
+
+`pnpm dev:all` encadeia quatro passos atômicos, todos disponíveis isolados:
 
 | Script             | O que faz                                                                                        |
 | ------------------ | ------------------------------------------------------------------------------------------------ |
+| `pnpm env:setup`   | Copia `.env.example → .env` em `apps/api` e `apps/web` se não existirem (idempotente)            |
 | `pnpm dev:up`      | `docker compose up -d --wait` — sobe Postgres, Redis, RabbitMQ, MailHog e espera ficarem healthy |
 | `pnpm dev:migrate` | `prisma migrate dev` no workspace `@vistoria/api`                                                |
 | `pnpm dev`         | `turbo run dev` — API (`apps/api`, NestJS) + Web (`apps/web`, Vite) em paralelo                  |
+
+Credenciais de dev (seed idempotente — `pnpm --filter @vistoria/api prisma:seed`): tenant `auxiliadora`, usuário `admin@auxiliadorapredial.com.br` / senha `admin123`, roles `[ADMIN, GESTOR]`.
 
 ## URLs locais
 
@@ -73,6 +77,37 @@ pnpm dev:all                    # docker --wait → prisma migrate → turbo dev
 | http://localhost:5555           | Prisma Studio (rode `pnpm --filter @vistoria/api prisma:studio`) |
 
 Conexões TCP: Postgres `localhost:5433` (5433 e não 5432 para coexistir com Postgres nativo Windows), Redis `:6379`, RabbitMQ AMQP `:5672`, MailHog SMTP `:1025`.
+
+## Painel admin (apps/web)
+
+Após `pnpm dev:all`, o painel responde em http://localhost:5173 e cobre o fluxo ponta-a-ponta da SAGA. Telas funcionais:
+
+| Rota              | O que faz                                                                                        |
+| ----------------- | ------------------------------------------------------------------------------------------------ |
+| `/login`          | Login real contra `POST /api/v1/auth/login` (use as credenciais do seed)                         |
+| `/`               | Dashboard com 3 KPIs vivos (SOLICITADA / EM_EXECUCAO / CONCLUIDA)                                |
+| `/vistorias`      | Lista paginada (20/pág) com filtros por status e tipo                                            |
+| `/vistorias/novo` | Criação de Vistoria (entra em `SOLICITADA`)                                                      |
+| `/vistorias/:id`  | Detalhe completo + cancelamento condicionado aos estados pré-execução                            |
+| `/audit`          | Audit log filtrável (acompanha transições disparadas por webhook quando BE consumir o RMQ event) |
+| `/health`         | Status dos componentes do `apps/api` (Postgres, Redis, RabbitMQ)                                 |
+
+## Endpoints REST (apps/api)
+
+Documentação interativa em http://localhost:3000/api/docs. Conjunto vivo após o segundo ciclo:
+
+| Método | Rota                                           | Auth               |
+| ------ | ---------------------------------------------- | ------------------ |
+| POST   | `/api/v1/auth/login`                           | público            |
+| GET    | `/api/v1/auth/me`                              | JWT                |
+| GET    | `/api/v1/vistorias`                            | JWT                |
+| GET    | `/api/v1/vistorias/:id`                        | JWT                |
+| POST   | `/api/v1/vistorias`                            | JWT                |
+| POST   | `/api/v1/vistorias/:id/cancelar`               | JWT                |
+| GET    | `/api/v1/audit-logs`                           | JWT (ADMIN/GESTOR) |
+| POST   | `/api/v1/integrations/webhooks/rede-vistorias` | HMAC público       |
+| POST   | `/api/v1/integrations/webhooks/conceitual`     | HMAC público       |
+| GET    | `/v1/health`                                   | público            |
 
 ## Outros comandos
 
