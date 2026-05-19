@@ -43,27 +43,56 @@ Detalhes completos em [AGENTS.md](./AGENTS.md). Cada pasta possui um `CLAUDE.md`
 - Docker + Docker Compose
 - PostgreSQL (via Docker)
 
-## Comandos
+## Subir o stack local
 
 ```bash
-# Instalar dependências do monorepo
-pnpm install
+pnpm install                    # instala dependências do monorepo
+cp infra/.env.example infra/.env       # opcional — só pra customizar
+cp apps/api/.env.example apps/api/.env # obrigatório antes do dev:all
 
-# Rodar dev de todos os apps
-pnpm dev
+pnpm dev:all                    # docker --wait → prisma migrate → turbo dev
+```
 
-# Build de tudo
-pnpm build
+`pnpm dev:all` encadeia três passos atômicos, todos disponíveis isolados:
 
-# Lint, testes, typecheck
-pnpm lint
-pnpm test
-pnpm typecheck
+| Script             | O que faz                                                                                        |
+| ------------------ | ------------------------------------------------------------------------------------------------ |
+| `pnpm dev:up`      | `docker compose up -d --wait` — sobe Postgres, Redis, RabbitMQ, MailHog e espera ficarem healthy |
+| `pnpm dev:migrate` | `prisma migrate dev` no workspace `@vistoria/api`                                                |
+| `pnpm dev`         | `turbo run dev` — API (`apps/api`, NestJS) + Web (`apps/web`, Vite) em paralelo                  |
+
+## URLs locais
+
+| URL                             | O que é                                                          |
+| ------------------------------- | ---------------------------------------------------------------- |
+| http://localhost:5173           | Painel admin React (`apps/web`)                                  |
+| http://localhost:3000/api/docs  | Swagger interativo do `apps/api`                                 |
+| http://localhost:3000/v1/health | Health check (terminus — Postgres, Redis, RabbitMQ)              |
+| http://localhost:15672          | RabbitMQ Management (`vistoria` / `vistoria`)                    |
+| http://localhost:8025           | MailHog UI (caixa de entrada SMTP do dev)                        |
+| http://localhost:5555           | Prisma Studio (rode `pnpm --filter @vistoria/api prisma:studio`) |
+
+Conexões TCP: Postgres `localhost:5433` (5433 e não 5432 para coexistir com Postgres nativo Windows), Redis `:6379`, RabbitMQ AMQP `:5672`, MailHog SMTP `:1025`.
+
+## Outros comandos
+
+```bash
+pnpm build                      # build de tudo via turbo
+pnpm lint                       # lint do monorepo
+pnpm test                       # testes
+pnpm typecheck                  # tsc --noEmit
+
+pnpm docker:up                  # só os containers (sem migrate / sem turbo dev)
+pnpm docker:down                # derruba containers (mantém volumes)
+pnpm docker:reset               # down -v + up -d (reseta volumes!)
+pnpm docker:logs                # tail dos containers
 ```
 
 ## SAGA de Vistoria
 
 `SOLICITADA → ROTEADA → AGENDADA → CONFIRMADA → EM_EXECUÇÃO → LAUDO_PENDENTE → LAUDO_APROVADO → CONCLUÍDA | CANCELADA`
+
+Diagramas vivos em [`docs/architecture/`](./docs/architecture/) — incluindo [C4 Context](./docs/architecture/c4-context.md), [C4 Container](./docs/architecture/c4-container.md), [SAGA](./docs/architecture/saga-vistoria.md), [ERD](./docs/architecture/erd.md), fluxos de auth, webhooks e eventos.
 
 ## Princípios Inviolávies
 

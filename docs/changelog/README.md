@@ -10,7 +10,7 @@ Histórico de sprints da Plataforma de Vistorias. Cada sprint produz um arquivo 
 | [SPRINT-02](./SPRINT-02.md) | Bootstrap NestJS + Prisma + auth JWT + health                     | BE     | 2026-04-26 |
 | [SPRINT-03](./SPRINT-03.md) | Integrações: providers, webhooks HMAC, RMQ subscriber, Salesforce | IN     | 2026-04-26 |
 | [SPRINT-04](./SPRINT-04.md) | Painel admin React + Tailwind + Shadcn                            | FE     | 2026-04-27 |
-| [SPRINT-05](./SPRINT-05.md) | Documentação consolidada (ADRs, diagramas, README)                | DOC    | 2026-04-27 |
+| [SPRINT-05](./SPRINT-05.md) | Documentação consolidada (C4 + ERD, README, validação handoffs)   | DOC    | 2026-05-19 |
 
 ## Convenções
 
