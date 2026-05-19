@@ -70,3 +70,58 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Confere build do apps/web
+        run: pnpm --filter @vistoria/web build
+
+  e2e:
+    name: E2E (smoke /v1/health)
+    runs-on: ubuntu-latest
+    needs: ci
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Bootstrap dos .env (apps/api, apps/web)
+        run: pnpm env:setup
+
+      - name: Subir stack (Postgres, Redis, RabbitMQ, MailHog)
+        run: pnpm dev:up
+
+      - name: Rodar migrations
+        run: pnpm dev:migrate
+
+      - name: Instalar browser do Playwright
+        run: pnpm test:e2e:install
+
+      - name: E2E tests
+        run: pnpm test:e2e
+
+      - name: Upload relatório do Playwright em caso de falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Derrubar stack
+        if: always()
+        run: pnpm docker:down
