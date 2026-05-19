@@ -6,7 +6,6 @@ import {
 import { ConfigService } from "@nestjs/config";
 import { LoggerModule } from "nestjs-pino";
 import { ConfigModule } from "./config/config.module";
-import { TypedConfigService } from "./config/typed-config.service";
 import type { Env } from "./config/env.schema";
 import { CorrelationIdMiddleware } from "./common/middleware/correlation-id.middleware";
 import { buildLoggerConfig } from "./common/logger/logger.config";
@@ -34,8 +33,6 @@ import { IntegrationsModule } from "@vistoria/integrations";
     HealthModule,
     IntegrationsModule.forRoot(),
   ],
-  providers: [TypedConfigService],
-  exports: [TypedConfigService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {

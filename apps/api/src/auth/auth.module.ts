@@ -39,7 +39,6 @@ import { resolveRsaKeyPair } from "./keys";
     }),
   ],
   providers: [
-    TypedConfigService,
     JwtStrategy,
     { provide: APP_GUARD, useClass: JwtGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
