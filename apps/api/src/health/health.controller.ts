@@ -5,11 +5,13 @@ import {
   type HealthCheckResult,
 } from "@nestjs/terminus";
 import { ApiTags } from "@nestjs/swagger";
+import { Public } from "../auth/decorators/public.decorator";
 import { PrismaHealthIndicator } from "./indicators/prisma.indicator";
 import { RedisHealthIndicator } from "./indicators/redis.indicator";
 import { RabbitMQHealthIndicator } from "./indicators/rabbitmq.indicator";
 
 @ApiTags("health")
+@Public()
 @Controller({ path: "health", version: undefined })
 export class HealthController {
   constructor(
