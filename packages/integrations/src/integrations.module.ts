@@ -3,9 +3,12 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ConceitualProvider } from "./providers/conceitual.provider";
 import { InternoProvider } from "./providers/interno.provider";
 import { RedeVistoriasProvider } from "./providers/rede-vistorias.provider";
+import { ProviderRoutingService } from "./routing/provider-routing.service";
 import { WebhookSignatureVerifier } from "./webhooks/signature-verifier";
 import { WebhookController } from "./webhooks/webhook.controller";
 import { RmqSubscriber } from "./messaging/rmq-subscriber.service";
+import { RmqVistoriaStatusWriter } from "./messaging/rmq-vistoria-status-writer.service";
+import { VISTORIA_STATUS_WRITER } from "./ports/vistoria-status-writer.port";
 
 @Module({})
 export class IntegrationsModule {
@@ -18,6 +21,12 @@ export class IntegrationsModule {
         WebhookSignatureVerifier,
         InternoProvider,
         RmqSubscriber,
+        ProviderRoutingService,
+        RmqVistoriaStatusWriter,
+        {
+          provide: VISTORIA_STATUS_WRITER,
+          useExisting: RmqVistoriaStatusWriter,
+        },
         {
           provide: RedeVistoriasProvider,
           inject: [ConfigService],
@@ -49,7 +58,10 @@ export class IntegrationsModule {
         RedeVistoriasProvider,
         ConceitualProvider,
         InternoProvider,
+        ProviderRoutingService,
         RmqSubscriber,
+        RmqVistoriaStatusWriter,
+        VISTORIA_STATUS_WRITER,
         WebhookSignatureVerifier,
       ],
     };

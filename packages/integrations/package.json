@@ -67,7 +67,9 @@
     ],
     "moduleNameMapper": {
       "^@vistoria/api-contracts$": "<rootDir>/../api-contracts/src/index.ts",
-      "^@vistoria/api-contracts/(.*)$": "<rootDir>/../api-contracts/src/$1"
+      "^@vistoria/api-contracts/(.*)\\.js$": "<rootDir>/../api-contracts/src/$1",
+      "^@vistoria/api-contracts/(.*)$": "<rootDir>/../api-contracts/src/$1",
+      "^(\\.{1,2}/.*)\\.js$": "$1"
     }
   }
 }

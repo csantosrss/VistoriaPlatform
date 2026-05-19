@@ -25,6 +25,7 @@ Decisões arquiteturais não-triviais da Plataforma de Vistorias. Toda decisão 
 | [010](./ADR-010-react-router-v6.md)                 | React Router v6 (vs Tanstack Router)                  | FE    | S04    | Aceita |
 | [011](./ADR-011-shadcn-copypaste.md)                | Shadcn-style copy-paste (vs MUI/Mantine)              | FE    | S04    | Aceita |
 | [012](./ADR-012-tailwind-3.md)                      | Tailwind 3.4 (vs Tailwind 4)                          | FE    | S04    | Aceita |
+| [013](./ADR-013-vistoria-status-writer-port.md)     | IN escreve Vistoria.status via port + evento RMQ      | IN    | S08    | Aceita |
 
 ## Por categoria
 
@@ -38,7 +39,7 @@ Decisões arquiteturais não-triviais da Plataforma de Vistorias. Toda decisão 
 
 ### Integrações / Segurança de webhooks
 
-- ADR-007 (HMAC), ADR-008 (HTTP client), ADR-009 (status mapping)
+- ADR-007 (HMAC), ADR-008 (HTTP client), ADR-009 (status mapping), ADR-013 (port + RMQ event para escrita de status)
 
 ### Frontend
 
