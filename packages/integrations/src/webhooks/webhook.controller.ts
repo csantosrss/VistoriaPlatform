@@ -13,7 +13,7 @@ import {
 } from "@nestjs/common";
 import type { Request } from "express";
 import { ApiTags } from "@nestjs/swagger";
-import type { ConfigService } from "@nestjs/config";
+import { ConfigService } from "@nestjs/config";
 import { WebhookSignatureVerifier } from "./signature-verifier";
 import { ConceitualProvider } from "../providers/conceitual.provider";
 import { RedeVistoriasProvider } from "../providers/rede-vistorias.provider";
