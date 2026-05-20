@@ -14,10 +14,15 @@ import {
 } from "@nestjs/swagger";
 import { AuthService } from "./auth.service";
 import { LoginDto } from "./dto/login.dto";
+import { RefreshDto } from "./dto/refresh.dto";
 import { Public } from "./decorators/public.decorator";
 import { CurrentUser } from "./decorators/current-user.decorator";
 import type { AuthenticatedUser } from "./jwt-payload.interface";
-import type { LoginResponse, MeResponse } from "@vistoria/api-contracts";
+import type {
+  LoginResponse,
+  MeResponse,
+  RefreshResponse,
+} from "@vistoria/api-contracts";
 
 @ApiTags("auth")
 @Controller({ path: "auth", version: "1" })
@@ -32,6 +37,20 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: "Credenciais inválidas." })
   login(@Body() dto: LoginDto): Promise<LoginResponse> {
     return this.auth.login(dto);
+  }
+
+  @Public()
+  @Post("refresh")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Renova o par access/refresh a partir de um refresh token válido.",
+  })
+  @ApiOkResponse({ description: "Tokens renovados." })
+  @ApiUnauthorizedResponse({
+    description: "Refresh ausente, inválido, expirado ou de usuário inativo.",
+  })
+  refresh(@Body() dto: RefreshDto): Promise<RefreshResponse> {
+    return this.auth.refresh(dto);
   }
 
   @Get("me")

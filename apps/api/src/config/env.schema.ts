@@ -24,6 +24,7 @@ export const envSchema = z.object({
   JWT_ISSUER: z.string().min(1).default("vistoria-platform"),
   JWT_AUDIENCE: z.string().min(1).default("vistoria-api"),
   JWT_EXPIRES_IN: z.string().min(1).default("15m"),
+  JWT_REFRESH_EXPIRES_IN: z.string().min(1).default("7d"),
 
   SERVICE_NAME: z.string().min(1).default("vistoria-api"),
 

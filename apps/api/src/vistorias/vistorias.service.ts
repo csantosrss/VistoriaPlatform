@@ -8,14 +8,19 @@ import {
   Prisma,
   StatusVistoria,
   type Vistoria as VistoriaModel,
+  type VistoriaTransicao as VistoriaTransicaoModel,
 } from "@prisma/client";
 import { PrismaService } from "../infrastructure/prisma/prisma.service";
+import { ProviderRoutingService } from "@vistoria/integrations";
 import type { CreateVistoriaDto } from "./dto/create-vistoria.dto";
 import type { CancelVistoriaDto } from "./dto/cancel-vistoria.dto";
 import type { ListVistoriasQueryDto } from "./dto/list-vistorias.dto";
 import type {
+  ListVistoriaTransicoesResponse,
   ListVistoriasResponse,
   Vistoria as VistoriaDto,
+  VistoriaStatsResponse,
+  VistoriaTransicao as VistoriaTransicaoDto,
 } from "@vistoria/api-contracts";
 import type { AuthenticatedUser } from "../auth/jwt-payload.interface";
 
@@ -54,26 +59,52 @@ function toDto(v: VistoriaModel): VistoriaDto {
   };
 }
 
+function toTransicaoDto(t: VistoriaTransicaoModel): VistoriaTransicaoDto {
+  return {
+    id: t.id,
+    vistoriaId: t.vistoriaId,
+    tenantId: t.tenantId,
+    de: t.de,
+    para: t.para,
+    motivo: t.motivo,
+    executadoPor: t.executadoPor,
+    correlationId: t.correlationId,
+    createdAt: t.createdAt.toISOString(),
+  };
+}
+
 @Injectable()
 export class VistoriasService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly routing: ProviderRoutingService,
+  ) {}
 
   async create(
     actor: AuthenticatedUser,
     input: CreateVistoriaDto,
   ): Promise<VistoriaDto> {
+    const enderecoUf = input.enderecoUf.toUpperCase();
+    const decision = this.routing.decide({
+      tenantId: actor.tenantId,
+      tipo: input.tipo,
+      enderecoUf,
+      enderecoCidade: input.enderecoCidade,
+    });
+
     const result = await this.prisma.$transaction(async (tx) => {
       const vistoria = await tx.vistoria.create({
         data: {
           tenantId: actor.tenantId,
-          status: StatusVistoria.SOLICITADA,
+          status: StatusVistoria.ROTEADA,
           tipo: input.tipo,
+          providerId: decision.providerId,
           enderecoLogradouro: input.enderecoLogradouro,
           enderecoNumero: input.enderecoNumero,
           enderecoComplemento: input.enderecoComplemento ?? null,
           enderecoBairro: input.enderecoBairro,
           enderecoCidade: input.enderecoCidade,
-          enderecoUf: input.enderecoUf.toUpperCase(),
+          enderecoUf,
           enderecoCep: input.enderecoCep,
           contatoNome: input.contatoNome,
           contatoTelefone: input.contatoTelefone,
@@ -81,24 +112,47 @@ export class VistoriasService {
           observacoes: input.observacoes ?? null,
         },
       });
-      await tx.vistoriaTransicao.create({
-        data: {
-          vistoriaId: vistoria.id,
-          tenantId: vistoria.tenantId,
-          de: null,
-          para: StatusVistoria.SOLICITADA,
-          executadoPor: actor.id,
-        },
+      await tx.vistoriaTransicao.createMany({
+        data: [
+          {
+            vistoriaId: vistoria.id,
+            tenantId: vistoria.tenantId,
+            de: null,
+            para: StatusVistoria.SOLICITADA,
+            executadoPor: actor.id,
+          },
+          {
+            vistoriaId: vistoria.id,
+            tenantId: vistoria.tenantId,
+            de: StatusVistoria.SOLICITADA,
+            para: StatusVistoria.ROTEADA,
+            motivo: decision.reason,
+            executadoPor: actor.id,
+          },
+        ],
       });
-      await tx.auditLog.create({
-        data: {
-          tenantId: actor.tenantId,
-          userId: actor.id,
-          action: "VISTORIA.CREATED",
-          resourceType: "Vistoria",
-          resourceId: vistoria.id,
-          after: vistoria as unknown as Prisma.InputJsonValue,
-        },
+      await tx.auditLog.createMany({
+        data: [
+          {
+            tenantId: actor.tenantId,
+            userId: actor.id,
+            action: "VISTORIA.CREATED",
+            resourceType: "Vistoria",
+            resourceId: vistoria.id,
+            after: vistoria as unknown as Prisma.InputJsonValue,
+          },
+          {
+            tenantId: actor.tenantId,
+            userId: actor.id,
+            action: "VISTORIA.ROUTED",
+            resourceType: "Vistoria",
+            resourceId: vistoria.id,
+            after: {
+              providerId: decision.providerId,
+              reason: decision.reason,
+            } as Prisma.InputJsonValue,
+          },
+        ],
       });
       return vistoria;
     });
@@ -140,6 +194,27 @@ export class VistoriasService {
     };
   }
 
+  async stats(actor: AuthenticatedUser): Promise<VistoriaStatsResponse> {
+    const grouped = await this.prisma.vistoria.groupBy({
+      by: ["status"],
+      where: { tenantId: actor.tenantId },
+      _count: { _all: true },
+    });
+    const byStatus = Object.values(StatusVistoria).reduce(
+      (acc, s) => {
+        acc[s] = 0;
+        return acc;
+      },
+      {} as Record<StatusVistoria, number>,
+    );
+    let total = 0;
+    for (const row of grouped) {
+      byStatus[row.status] = row._count._all;
+      total += row._count._all;
+    }
+    return { total, byStatus };
+  }
+
   async findOne(actor: AuthenticatedUser, id: string): Promise<VistoriaDto> {
     const vistoria = await this.prisma.vistoria.findFirst({
       where: { id, tenantId: actor.tenantId },
@@ -148,6 +223,24 @@ export class VistoriasService {
       throw new NotFoundException("Vistoria não encontrada.");
     }
     return toDto(vistoria);
+  }
+
+  async listTransicoes(
+    actor: AuthenticatedUser,
+    vistoriaId: string,
+  ): Promise<ListVistoriaTransicoesResponse> {
+    const vistoria = await this.prisma.vistoria.findFirst({
+      where: { id: vistoriaId, tenantId: actor.tenantId },
+      select: { id: true },
+    });
+    if (!vistoria) {
+      throw new NotFoundException("Vistoria não encontrada.");
+    }
+    const data = await this.prisma.vistoriaTransicao.findMany({
+      where: { vistoriaId, tenantId: actor.tenantId },
+      orderBy: { createdAt: "asc" },
+    });
+    return { data: data.map(toTransicaoDto) };
   }
 
   async cancel(

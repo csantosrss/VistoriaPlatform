@@ -51,9 +51,10 @@ test.describe("Painel admin — fluxo ponta-a-ponta pelo navegador", () => {
 
     await page.getByRole("button", { name: "Criar vistoria" }).click();
 
-    // Após sucesso, FE navega para /vistorias/:id.
+    // Após sucesso, FE navega para /vistorias/:id. Desde a Sprint 12 BE,
+    // create já aplica routing — vistoria chega no detalhe em ROTEADA.
     await page.waitForURL(new RegExp(`${WEB_URL}/vistorias/[0-9a-f-]+$`));
-    await expect(page.getByText("Solicitada", { exact: false })).toBeVisible();
+    await expect(page.getByText("Roteada", { exact: false })).toBeVisible();
 
     // Cancela.
     await page

@@ -7,6 +7,7 @@ const ADMIN_CREDS = {
 
 async function login(request: APIRequestContext): Promise<{
   access: string;
+  refresh: string;
   userId: string;
   tenantId: string;
 }> {
@@ -16,8 +17,10 @@ async function login(request: APIRequestContext): Promise<{
   expect(response.status()).toBe(200);
   const body = await response.json();
   expect(body.access).toBeTruthy();
+  expect(body.refresh).toBeTruthy();
   return {
     access: body.access,
+    refresh: body.refresh,
     userId: body.user.id,
     tenantId: body.user.tenantId,
   };
@@ -74,7 +77,8 @@ test.describe("Auth + Vistorias E2E", () => {
     });
     expect(create.status()).toBe(201);
     const created = await create.json();
-    expect(created.status).toBe("SOLICITADA");
+    expect(created.status).toBe("ROTEADA");
+    expect(created.providerId).toBeTruthy();
     const id = created.id as string;
 
     // list contains it
@@ -111,7 +115,101 @@ test.describe("Auth + Vistorias E2E", () => {
     const auditBody = await audit.json();
     const actions = auditBody.data.map((l: { action: string }) => l.action);
     expect(actions).toEqual(
-      expect.arrayContaining(["VISTORIA.CREATED", "VISTORIA.CANCELED"]),
+      expect.arrayContaining([
+        "VISTORIA.CREATED",
+        "VISTORIA.ROUTED",
+        "VISTORIA.CANCELED",
+      ]),
     );
+  });
+
+  test("refresh token renova o par e o novo access acessa /me", async ({
+    request,
+  }) => {
+    const { refresh } = await login(request);
+
+    const refreshed = await request.post("/api/v1/auth/refresh", {
+      data: { refresh },
+    });
+    expect(refreshed.status()).toBe(200);
+    const body = await refreshed.json();
+    expect(body.access).toBeTruthy();
+    expect(body.refresh).toBeTruthy();
+    expect(body.refresh).not.toBe(refresh);
+
+    const me = await request.get("/api/v1/auth/me", {
+      headers: { Authorization: `Bearer ${body.access}` },
+    });
+    expect(me.status()).toBe(200);
+  });
+
+  test("refresh com token inválido retorna 401", async ({ request }) => {
+    const response = await request.post("/api/v1/auth/refresh", {
+      data: { refresh: "x".repeat(50) },
+    });
+    expect(response.status()).toBe(401);
+  });
+
+  test("refresh usando access token (type errado) retorna 401", async ({
+    request,
+  }) => {
+    const { access } = await login(request);
+    const response = await request.post("/api/v1/auth/refresh", {
+      data: { refresh: access },
+    });
+    expect(response.status()).toBe(401);
+  });
+
+  test("GET /vistorias/stats devolve total + byStatus", async ({ request }) => {
+    const { access } = await login(request);
+    const response = await request.get("/api/v1/vistorias/stats", {
+      headers: { Authorization: `Bearer ${access}` },
+    });
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(typeof body.total).toBe("number");
+    expect(body.byStatus).toBeDefined();
+    expect(typeof body.byStatus.SOLICITADA).toBe("number");
+    expect(typeof body.byStatus.ROTEADA).toBe("number");
+    expect(typeof body.byStatus.CONCLUIDA).toBe("number");
+    expect(typeof body.byStatus.CANCELADA).toBe("number");
+  });
+
+  test("GET /vistorias/:id/transicoes devolve a timeline da SAGA", async ({
+    request,
+  }) => {
+    const { access } = await login(request);
+    const auth = { Authorization: `Bearer ${access}` };
+
+    const create = await request.post("/api/v1/vistorias", {
+      headers: auth,
+      data: {
+        tipo: "ENTRADA",
+        enderecoLogradouro: "Rua Transicao",
+        enderecoNumero: "1",
+        enderecoBairro: "Centro",
+        enderecoCidade: "Porto Alegre",
+        enderecoUf: "RS",
+        enderecoCep: "90000-000",
+        contatoNome: "Tester",
+        contatoTelefone: "5199999000",
+      },
+    });
+    const created = await create.json();
+    const id = created.id as string;
+
+    const transicoes = await request.get(`/api/v1/vistorias/${id}/transicoes`, {
+      headers: auth,
+    });
+    expect(transicoes.status()).toBe(200);
+    const body = await transicoes.json();
+    expect(Array.isArray(body.data)).toBe(true);
+    // criação registra duas transições: null→SOLICITADA, SOLICITADA→ROTEADA
+    expect(body.data.length).toBeGreaterThanOrEqual(2);
+    expect(body.data[0].de).toBeNull();
+    expect(body.data[0].para).toBe("SOLICITADA");
+    expect(body.data[1].de).toBe("SOLICITADA");
+    expect(body.data[1].para).toBe("ROTEADA");
+    expect(body.data[1].motivo).toBeTruthy();
   });
 });
