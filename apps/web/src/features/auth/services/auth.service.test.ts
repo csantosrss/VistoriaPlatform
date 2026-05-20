@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   clearSession,
+  getStoredRefresh,
   getStoredToken,
   getStoredUser,
   persistSession,
@@ -14,28 +15,32 @@ const FAKE_USER = {
   roles: ["ADMIN", "GESTOR"] as const,
 };
 
+function makeSession() {
+  return {
+    access: "a".repeat(40),
+    expiresIn: "15m",
+    refresh: "r".repeat(40),
+    refreshExpiresIn: "7d",
+    user: { ...FAKE_USER, roles: [...FAKE_USER.roles] },
+  };
+}
+
 describe("auth.service session helpers", () => {
   beforeEach(() => localStorage.clear());
   afterEach(() => localStorage.clear());
 
-  it("persistSession + getStoredToken/User", () => {
-    persistSession({
-      access: "x".repeat(40),
-      expiresIn: "15m",
-      user: { ...FAKE_USER, roles: [...FAKE_USER.roles] },
-    });
-    expect(getStoredToken()).toBe("x".repeat(40));
+  it("persistSession armazena access, refresh e user", () => {
+    persistSession(makeSession());
+    expect(getStoredToken()).toBe("a".repeat(40));
+    expect(getStoredRefresh()).toBe("r".repeat(40));
     expect(getStoredUser()?.email).toBe(FAKE_USER.email);
   });
 
-  it("clearSession remove tudo", () => {
-    persistSession({
-      access: "x".repeat(40),
-      expiresIn: "15m",
-      user: { ...FAKE_USER, roles: [...FAKE_USER.roles] },
-    });
+  it("clearSession remove tudo (access, refresh, user)", () => {
+    persistSession(makeSession());
     clearSession();
     expect(getStoredToken()).toBeNull();
+    expect(getStoredRefresh()).toBeNull();
     expect(getStoredUser()).toBeNull();
   });
 

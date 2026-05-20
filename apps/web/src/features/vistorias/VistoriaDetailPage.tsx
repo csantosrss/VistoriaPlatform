@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useVistoria } from "./hooks/use-vistoria";
 import { VistoriaStatusBadge } from "./components/VistoriaStatusBadge";
 import { CancelVistoriaForm } from "./components/CancelVistoriaForm";
+import { VistoriaTransicoesTimeline } from "./components/VistoriaTransicoesTimeline";
 
 function fmt(dt: string | null): string {
   return dt ? new Date(dt).toLocaleString("pt-BR") : "—";
@@ -92,21 +93,31 @@ export function VistoriaDetailPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Cancelar</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {STATUS_CANCELAVEIS.includes(data.status) ? (
-                <CancelVistoriaForm id={data.id} />
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Status atual ({data.status}) não admite cancelamento. Estados
-                  canceláveis: {STATUS_CANCELAVEIS.join(", ")}.
-                </p>
-              )}
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Timeline</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <VistoriaTransicoesTimeline id={data.id} />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Cancelar</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {STATUS_CANCELAVEIS.includes(data.status) ? (
+                  <CancelVistoriaForm id={data.id} />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Status atual ({data.status}) não admite cancelamento.
+                    Estados canceláveis: {STATUS_CANCELAVEIS.join(", ")}.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
     </div>

@@ -1,12 +1,16 @@
 import { apiClient } from "@/lib/api-client";
 import {
+  ListVistoriaTransicoesResponseSchema,
   ListVistoriasResponseSchema,
   VistoriaSchema,
+  VistoriaStatsResponseSchema,
   type CancelVistoriaRequest,
   type CreateVistoriaRequest,
+  type ListVistoriaTransicoesResponse,
   type ListVistoriasQuery,
   type ListVistoriasResponse,
   type Vistoria,
+  type VistoriaStatsResponse,
 } from "@vistoria/api-contracts";
 
 export async function listVistorias(
@@ -16,9 +20,21 @@ export async function listVistorias(
   return ListVistoriasResponseSchema.parse(data);
 }
 
+export async function getVistoriasStats(): Promise<VistoriaStatsResponse> {
+  const { data } = await apiClient.get("/api/v1/vistorias/stats");
+  return VistoriaStatsResponseSchema.parse(data);
+}
+
 export async function getVistoria(id: string): Promise<Vistoria> {
   const { data } = await apiClient.get(`/api/v1/vistorias/${id}`);
   return VistoriaSchema.parse(data);
+}
+
+export async function getVistoriaTransicoes(
+  id: string,
+): Promise<ListVistoriaTransicoesResponse> {
+  const { data } = await apiClient.get(`/api/v1/vistorias/${id}/transicoes`);
+  return ListVistoriaTransicoesResponseSchema.parse(data);
 }
 
 export async function createVistoria(

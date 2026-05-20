@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useVistorias } from "@/features/vistorias/hooks/use-vistorias";
+import { useVistoriasStats } from "@/features/vistorias/hooks/use-vistorias-stats";
 
 interface KpiSpec {
   title: string;
@@ -16,6 +16,16 @@ interface KpiSpec {
   statuses: StatusVistoria[];
 }
 
+/**
+ * KPIs do dashboard. Cada card soma os contadores dos status listados em
+ * `statuses`, lidos do agregado `GET /vistorias/stats` (Sprint 12 BE) —
+ * substituiu as 3 chamadas paralelas a `/vistorias?status=...&pageSize=1`
+ * do dashboard original (Sprint 09 FE).
+ *
+ * KPI "Roteadas" entrou no Sprint 14 FE porque a Sprint 12 BE passou a
+ * rotear vistorias inline na criação: o backlog de SOLICITADA ficava em 0
+ * e a etapa de routing desaparecia da visão do gestor.
+ */
 const KPIS: KpiSpec[] = [
   {
     title: "Solicitadas",
@@ -23,43 +33,33 @@ const KPIS: KpiSpec[] = [
     statuses: ["SOLICITADA"],
   },
   {
+    title: "Roteadas",
+    description: "Provider definido, aguardando agendamento",
+    statuses: ["ROTEADA"],
+  },
+  {
     title: "Em execução",
     description: "Em campo no momento",
-    statuses: ["EM_EXECUCAO"],
+    statuses: ["AGENDADA", "CONFIRMADA", "EM_EXECUCAO"],
   },
   {
     title: "Concluídas",
     description: "Total histórico (todas as datas)",
-    statuses: ["CONCLUIDA"],
+    statuses: ["LAUDO_APROVADO", "CONCLUIDA"],
   },
 ];
 
-function KpiCard({ spec }: { spec: KpiSpec }) {
-  // pageSize=1 economiza payload — só queremos o `total`.
-  const { data, isLoading, isError } = useVistorias({
-    status: spec.statuses[0],
-    pageSize: 1,
-  });
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{spec.title}</CardTitle>
-        <CardDescription>{spec.description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <Skeleton className="h-9 w-16" />
-        ) : isError ? (
-          <p className="text-sm text-destructive">erro</p>
-        ) : (
-          <div className="text-3xl font-semibold">{data?.total ?? 0}</div>
-        )}
-      </CardContent>
-    </Card>
-  );
+function sumByStatus(
+  byStatus: Record<StatusVistoria, number> | undefined,
+  statuses: StatusVistoria[],
+): number {
+  if (!byStatus) return 0;
+  return statuses.reduce((acc, s) => acc + (byStatus[s] ?? 0), 0);
 }
 
 export function DashboardPage() {
+  const { data, isLoading, isError } = useVistoriasStats();
+
   return (
     <div className="space-y-6">
       <div>
@@ -68,9 +68,25 @@ export function DashboardPage() {
           Visão geral da plataforma de vistorias.
         </p>
       </div>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {KPIS.map((spec) => (
-          <KpiCard key={spec.title} spec={spec} />
+          <Card key={spec.title}>
+            <CardHeader>
+              <CardTitle>{spec.title}</CardTitle>
+              <CardDescription>{spec.description}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-9 w-16" />
+              ) : isError ? (
+                <p className="text-sm text-destructive">erro</p>
+              ) : (
+                <div className="text-3xl font-semibold">
+                  {sumByStatus(data?.byStatus, spec.statuses)}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         ))}
       </div>
       <Card>

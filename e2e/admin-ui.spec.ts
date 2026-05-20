@@ -22,8 +22,10 @@ test.describe("Painel admin — fluxo ponta-a-ponta pelo navegador", () => {
     await expect(
       page.getByRole("heading", { name: "Dashboard" }),
     ).toBeVisible();
-    // KPIs do dashboard (Sprint 09): SOLICITADA, EM_EXECUCAO, CONCLUIDA.
+    // KPIs do dashboard (Sprint 14 FE — agora 4 cards via /stats):
+    // Solicitadas, Roteadas, Em execução, Concluídas.
     await expect(page.getByText("Solicitadas")).toBeVisible();
+    await expect(page.getByText("Roteadas")).toBeVisible();
     await expect(page.getByText("Em execução")).toBeVisible();
     await expect(page.getByText("Concluídas")).toBeVisible();
   });
@@ -55,6 +57,11 @@ test.describe("Painel admin — fluxo ponta-a-ponta pelo navegador", () => {
     // create já aplica routing — vistoria chega no detalhe em ROTEADA.
     await page.waitForURL(new RegExp(`${WEB_URL}/vistorias/[0-9a-f-]+$`));
     await expect(page.getByText("Roteada", { exact: false })).toBeVisible();
+
+    // Sprint 14 FE: timeline da SAGA visível no detalhe.
+    await expect(page.getByRole("heading", { name: "Timeline" })).toBeVisible();
+    // criação registra null→SOLICITADA e SOLICITADA→ROTEADA.
+    await expect(page.getByText(/Solicitada → Roteada/)).toBeVisible();
 
     // Cancela.
     await page
