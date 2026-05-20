@@ -8,6 +8,7 @@ import { WebhookSignatureVerifier } from "./webhooks/signature-verifier";
 import { WebhookController } from "./webhooks/webhook.controller";
 import { RmqSubscriber } from "./messaging/rmq-subscriber.service";
 import { RmqVistoriaStatusWriter } from "./messaging/rmq-vistoria-status-writer.service";
+import { AgendamentoOrchestrator } from "./orchestration/agendamento-orchestrator.service";
 import { VISTORIA_STATUS_WRITER } from "./ports/vistoria-status-writer.port";
 
 @Module({})
@@ -23,6 +24,7 @@ export class IntegrationsModule {
         RmqSubscriber,
         ProviderRoutingService,
         RmqVistoriaStatusWriter,
+        AgendamentoOrchestrator,
         {
           provide: VISTORIA_STATUS_WRITER,
           useExisting: RmqVistoriaStatusWriter,
@@ -61,6 +63,7 @@ export class IntegrationsModule {
         ProviderRoutingService,
         RmqSubscriber,
         RmqVistoriaStatusWriter,
+        AgendamentoOrchestrator,
         VISTORIA_STATUS_WRITER,
         WebhookSignatureVerifier,
       ],

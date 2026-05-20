@@ -18,7 +18,7 @@ describe("RmqVistoriaStatusWriter.update (sem canal)", () => {
 });
 
 describe("RmqVistoriaStatusWriter.update (com canal mockado)", () => {
-  it("publica no exchange com routing key vistoria.status.changed", async () => {
+  function buildWriter() {
     const writer = new RmqVistoriaStatusWriter({
       get: (key: string, def?: unknown) => {
         if (key === "RABBITMQ_URL") return undefined;
@@ -26,11 +26,14 @@ describe("RmqVistoriaStatusWriter.update (com canal mockado)", () => {
         return def;
       },
     } as never);
-    // injeta canal mockado
     const publish = jest.fn();
     (writer as unknown as { channel: unknown }).channel = { publish };
     (writer as unknown as { exchange: string }).exchange = "vistoria.events";
+    return { writer, publish };
+  }
 
+  it("publica no exchange com routing key vistoria.status.changed", async () => {
+    const { writer, publish } = buildWriter();
     await writer.update({
       vistoriaId: "v-1",
       tenantId: "t-1",
@@ -53,5 +56,38 @@ describe("RmqVistoriaStatusWriter.update (com canal mockado)", () => {
       source: "rede-vistorias",
       tenantId: "t-1",
     });
+  });
+
+  it("gera eventId quando ausente e envia no payload + messageId + header", async () => {
+    const { writer, publish } = buildWriter();
+    await writer.update({
+      vistoriaId: "v-1",
+      tenantId: "t-1",
+      newStatus: "AGENDADA",
+      source: "rede-vistorias",
+    });
+    const [, , buffer, opts] = publish.mock.calls[0];
+    const payload = JSON.parse(buffer.toString("utf8"));
+    expect(payload.eventId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
+    expect(opts.messageId).toBe(payload.eventId);
+    expect(opts.headers.eventId).toBe(payload.eventId);
+  });
+
+  it("respeita eventId fornecido pelo caller (idempotência cross-publisher)", async () => {
+    const { writer, publish } = buildWriter();
+    const fixed = "00000000-0000-4000-8000-000000000001";
+    await writer.update({
+      eventId: fixed,
+      vistoriaId: "v-1",
+      tenantId: "t-1",
+      newStatus: "EM_EXECUCAO",
+      source: "conceitual",
+    });
+    const [, , buffer, opts] = publish.mock.calls[0];
+    const payload = JSON.parse(buffer.toString("utf8"));
+    expect(payload.eventId).toBe(fixed);
+    expect(opts.messageId).toBe(fixed);
   });
 });

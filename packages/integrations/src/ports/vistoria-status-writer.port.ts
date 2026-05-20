@@ -23,6 +23,13 @@ export interface VistoriaStatusWriterPort {
 }
 
 export interface VistoriaStatusUpdate {
+  /**
+   * UUID v4 que identifica unicamente este evento de transição. Quando
+   * omitido, o writer gera um — exposto no payload e no header AMQP
+   * `messageId` (Sprint 13 IN, ADR-015). Consumidores podem usar para
+   * dedup estrito sem depender da comparação de status final.
+   */
+  eventId?: string;
   vistoriaId: string;
   /** Identificador interno do tenant, propagado para o consumidor. */
   tenantId: string;

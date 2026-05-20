@@ -31,7 +31,13 @@ describe("ConceitualProvider.mapStatus", () => {
 });
 
 describe("InternoProvider", () => {
-  const provider = new InternoProvider();
+  const update = jest.fn().mockResolvedValue(undefined);
+  const writer = { update };
+  const provider = new InternoProvider(writer);
+
+  beforeEach(() => {
+    update.mockClear();
+  });
 
   it("reports healthy in-process", async () => {
     const health = await provider.healthCheck();
@@ -40,17 +46,44 @@ describe("InternoProvider", () => {
     expect(health.latencyMs).toBe(0);
   });
 
-  it("throws NotImplemented for agendar", async () => {
-    await expect(
-      provider.agendar({
+  it("agendar() publica AGENDADA via writer e devolve externalId = vistoriaId", async () => {
+    const dataPreferida = new Date("2026-06-01T12:00:00Z");
+    const result = await provider.agendar({
+      vistoriaId: "V1",
+      tenantId: "T1",
+      tipo: "ENTRADA",
+      enderecoCompleto: "Rua X, 1",
+      cep: "00000-000",
+      contato: { nome: "Foo", telefone: "11999999999" },
+      dataPreferida,
+    });
+
+    expect(result.externalId).toBe("V1");
+    expect(result.status).toBe("AGENDADA");
+    expect(result.dataAgendada).toBe(dataPreferida);
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
         vistoriaId: "V1",
         tenantId: "T1",
-        tipo: "ENTRADA",
-        enderecoCompleto: "X",
-        cep: "00000-000",
-        contato: { nome: "Foo", telefone: "11999999999" },
+        newStatus: "AGENDADA",
+        source: "interno",
       }),
-    ).rejects.toThrow(/depende de VistoriaRepository/);
+    );
+  });
+
+  it("cancelar() publica CANCELADA via writer", async () => {
+    await provider.cancelar("V1");
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        vistoriaId: "V1",
+        newStatus: "CANCELADA",
+        source: "interno",
+      }),
+    );
+  });
+
+  it("consultar() ainda é NotImplemented (port BE→IN ausente)", async () => {
+    await expect(provider.consultar("V1")).rejects.toThrow(/port BE→IN/);
   });
 
   it("webhook is a no-op", async () => {

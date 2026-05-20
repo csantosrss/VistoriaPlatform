@@ -5,6 +5,7 @@ import {
   type OnModuleInit,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { randomUUID } from "node:crypto";
 import * as amqp from "amqplib";
 import type {
   VistoriaStatusUpdate,
@@ -58,21 +59,29 @@ export class RmqVistoriaStatusWriter
   }
 
   async update(input: VistoriaStatusUpdate): Promise<void> {
+    const eventId = input.eventId ?? randomUUID();
+    const payload: VistoriaStatusUpdate = { ...input, eventId };
     if (!this.channel) {
       this.logger.warn(
-        { vistoriaId: input.vistoriaId, newStatus: input.newStatus },
+        {
+          vistoriaId: input.vistoriaId,
+          newStatus: input.newStatus,
+          eventId,
+        },
         "Channel indisponível; evento descartado",
       );
       return;
     }
-    const body = Buffer.from(JSON.stringify(input), "utf8");
+    const body = Buffer.from(JSON.stringify(payload), "utf8");
     this.channel.publish(this.exchange, ROUTING_KEY, body, {
       persistent: true,
       contentType: "application/json",
+      messageId: eventId,
       correlationId: input.correlationId,
       headers: {
         source: input.source,
         tenantId: input.tenantId,
+        eventId,
       },
     });
     this.logger.log(
@@ -80,6 +89,7 @@ export class RmqVistoriaStatusWriter
         vistoriaId: input.vistoriaId,
         newStatus: input.newStatus,
         source: input.source,
+        eventId,
       },
       `Publicado ${ROUTING_KEY}`,
     );
