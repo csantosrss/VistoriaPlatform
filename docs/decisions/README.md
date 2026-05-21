@@ -26,6 +26,8 @@ Decisões arquiteturais não-triviais da Plataforma de Vistorias. Toda decisão 
 | [011](./ADR-011-shadcn-copypaste.md)                | Shadcn-style copy-paste (vs MUI/Mantine)              | FE    | S04    | Aceita |
 | [012](./ADR-012-tailwind-3.md)                      | Tailwind 3.4 (vs Tailwind 4)                          | FE    | S04    | Aceita |
 | [013](./ADR-013-vistoria-status-writer-port.md)     | IN escreve Vistoria.status via port + evento RMQ      | IN    | S08    | Aceita |
+| [014](./ADR-014-refresh-token-stateless.md)         | Refresh token JWT stateless com claim `type`          | BE    | S12    | Aceita |
+| [015](./ADR-015-dedup-eventid-writer.md)            | `eventId` no writer como identidade de dedup          | IN    | S13    | Aceita |
 
 ## Por categoria
 
@@ -35,11 +37,11 @@ Decisões arquiteturais não-triviais da Plataforma de Vistorias. Toda decisão 
 
 ### Backend
 
-- ADR-003 (ORM), ADR-004 (auth), ADR-005 (validação config)
+- ADR-003 (ORM), ADR-004 (auth), ADR-005 (validação config), ADR-014 (refresh token stateless)
 
 ### Integrações / Segurança de webhooks
 
-- ADR-007 (HMAC), ADR-008 (HTTP client), ADR-009 (status mapping), ADR-013 (port + RMQ event para escrita de status)
+- ADR-007 (HMAC), ADR-008 (HTTP client), ADR-009 (status mapping), ADR-013 (port + RMQ event para escrita de status), ADR-015 (eventId/idempotência no writer)
 
 ### Frontend
 

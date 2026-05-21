@@ -82,32 +82,35 @@ Conexões TCP: Postgres `localhost:5433` (5433 e não 5432 para coexistir com Po
 
 Após `pnpm dev:all`, o painel responde em http://localhost:5173 e cobre o fluxo ponta-a-ponta da SAGA. Telas funcionais:
 
-| Rota              | O que faz                                                                                        |
-| ----------------- | ------------------------------------------------------------------------------------------------ |
-| `/login`          | Login real contra `POST /api/v1/auth/login` (use as credenciais do seed)                         |
-| `/`               | Dashboard com 3 KPIs vivos (SOLICITADA / EM_EXECUCAO / CONCLUIDA)                                |
-| `/vistorias`      | Lista paginada (20/pág) com filtros por status e tipo                                            |
-| `/vistorias/novo` | Criação de Vistoria (entra em `SOLICITADA`)                                                      |
-| `/vistorias/:id`  | Detalhe completo + cancelamento condicionado aos estados pré-execução                            |
-| `/audit`          | Audit log filtrável (acompanha transições disparadas por webhook quando BE consumir o RMQ event) |
-| `/health`         | Status dos componentes do `apps/api` (Postgres, Redis, RabbitMQ)                                 |
+| Rota              | O que faz                                                                                                     |
+| ----------------- | ------------------------------------------------------------------------------------------------------------- |
+| `/login`          | Login real contra `POST /api/v1/auth/login` — par access + refresh; refresh transparente no `apiClient` (S14) |
+| `/`               | Dashboard com 4 KPIs vivos via `GET /vistorias/stats` (Solicitadas / Roteadas / Em execução / Concluídas)     |
+| `/vistorias`      | Lista paginada (20/pág) com filtros por status e tipo                                                         |
+| `/vistorias/novo` | Criação de Vistoria — entra direto em `ROTEADA` (routing inline com `providerId` desde S12)                   |
+| `/vistorias/:id`  | Detalhe completo + **timeline da SAGA** (S14) + cancelamento condicionado aos estados pré-execução            |
+| `/audit`          | Audit log filtrável — inclui `VISTORIA.STATUS_CHANGED` desde S12 (BE consome eventos do IN via RMQ)           |
+| `/health`         | Status dos componentes do `apps/api` (Postgres, Redis, RabbitMQ)                                              |
 
 ## Endpoints REST (apps/api)
 
-Documentação interativa em http://localhost:3000/api/docs. Conjunto vivo após o segundo ciclo:
+Documentação interativa em http://localhost:3000/api/docs. Conjunto vivo após o terceiro ciclo:
 
-| Método | Rota                                           | Auth               |
-| ------ | ---------------------------------------------- | ------------------ |
-| POST   | `/api/v1/auth/login`                           | público            |
-| GET    | `/api/v1/auth/me`                              | JWT                |
-| GET    | `/api/v1/vistorias`                            | JWT                |
-| GET    | `/api/v1/vistorias/:id`                        | JWT                |
-| POST   | `/api/v1/vistorias`                            | JWT                |
-| POST   | `/api/v1/vistorias/:id/cancelar`               | JWT                |
-| GET    | `/api/v1/audit-logs`                           | JWT (ADMIN/GESTOR) |
-| POST   | `/api/v1/integrations/webhooks/rede-vistorias` | HMAC público       |
-| POST   | `/api/v1/integrations/webhooks/conceitual`     | HMAC público       |
-| GET    | `/v1/health`                                   | público            |
+| Método | Rota                                           | Auth               | Entrou em |
+| ------ | ---------------------------------------------- | ------------------ | --------- |
+| POST   | `/api/v1/auth/login`                           | público            | S07       |
+| POST   | `/api/v1/auth/refresh`                         | refresh próprio    | S12       |
+| GET    | `/api/v1/auth/me`                              | JWT                | S07       |
+| GET    | `/api/v1/vistorias`                            | JWT                | S07       |
+| GET    | `/api/v1/vistorias/stats`                      | JWT                | S12       |
+| GET    | `/api/v1/vistorias/:id`                        | JWT                | S07       |
+| GET    | `/api/v1/vistorias/:id/transicoes`             | JWT                | S12       |
+| POST   | `/api/v1/vistorias`                            | JWT                | S07       |
+| POST   | `/api/v1/vistorias/:id/cancelar`               | JWT                | S07       |
+| GET    | `/api/v1/audit-logs`                           | JWT (ADMIN/GESTOR) | S07       |
+| POST   | `/api/v1/integrations/webhooks/rede-vistorias` | HMAC público       | S03/S08   |
+| POST   | `/api/v1/integrations/webhooks/conceitual`     | HMAC público       | S03/S08   |
+| GET    | `/v1/health`                                   | público            | S02       |
 
 ## Outros comandos
 
