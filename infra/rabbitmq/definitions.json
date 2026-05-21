@@ -1,0 +1,39 @@
+{
+  "rabbit_version": "3.13",
+  "vhosts": [{ "name": "/" }],
+  "permissions": [],
+  "topic_permissions": [],
+  "parameters": [],
+  "global_parameters": [],
+  "policies": [],
+  "queues": [
+    {
+      "name": "vistoria.events.dlq",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "vistoria.events.dlx",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "bindings": [
+    {
+      "source": "vistoria.events.dlx",
+      "vhost": "/",
+      "destination": "vistoria.events.dlq",
+      "destination_type": "queue",
+      "routing_key": "#",
+      "arguments": {}
+    }
+  ]
+}

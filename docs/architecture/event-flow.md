@@ -94,5 +94,6 @@ A queue `integrations.events` faz bind com pattern `vistoria.#` (todas). Subscri
 
 ## Pendências
 
-- DLX (`vistoria.events.dlx`) e DLQ (`integrations.events.dlq`) ainda não declaradas explicitamente — apenas `deadLetterExchange` no `assertQueue`. **QI Sprint próximo**: declaração explícita + alarme em mensagens não-consumidas
+- ~~DLX (`vistoria.events.dlx`) e DLQ ainda não declaradas explicitamente~~ — **resolvido na Sprint 16 QI** via `infra/rabbitmq/definitions.json` montado em `/etc/rabbitmq/definitions.json` e carregado pelo `management.load_definitions`. DLX `vistoria.events.dlx` + DLQ `vistoria.events.dlq` ficam declarados no boot do RabbitMQ.
 - Métricas Prometheus de publish/consume — ver TODO em [ADR-006](../decisions/ADR-006-amqplib-vs-nestjs-microservices.md)
+- Alarme em mensagens não-consumidas (DLQ size > 0) — pendente após Prometheus entrar.
