@@ -58,5 +58,10 @@ export const VistoriaRoutedEventSchema = z.object({
   observacoes: z.string().optional(),
   dataPreferida: z.string().datetime().optional(),
   correlationId: z.string().optional(),
+  /**
+   * Sprint 18 IN: vistoriador pré-atribuído pelo BE quando o routing
+   * começar a consultar a agenda. Opcional — providers ignoram se ausente.
+   */
+  vistoriadorId: z.string().uuid().optional(),
 });
 export type VistoriaRoutedEvent = z.infer<typeof VistoriaRoutedEventSchema>;

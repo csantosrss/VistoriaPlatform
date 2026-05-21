@@ -4,6 +4,7 @@ import axiosRetry from "axios-retry";
 import type {
   AgendamentoDto,
   AgendamentoResult,
+  CancelarDto,
   ConsultaResult,
   IVistoriaProvider,
   PartnerHealth,
@@ -49,7 +50,7 @@ export abstract class BaseHttpProvider implements IVistoriaProvider {
 
   abstract agendar(dto: AgendamentoDto): Promise<AgendamentoResult>;
   abstract consultar(externalId: string): Promise<ConsultaResult>;
-  abstract cancelar(externalId: string): Promise<void>;
+  abstract cancelar(dto: CancelarDto): Promise<void>;
   abstract receberWebhook(payload: unknown): Promise<void>;
 
   async healthCheck(): Promise<PartnerHealth> {

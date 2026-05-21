@@ -71,13 +71,19 @@ describe("InternoProvider", () => {
     );
   });
 
-  it("cancelar() publica CANCELADA via writer", async () => {
-    await provider.cancelar("V1");
+  it("cancelar() publica CANCELADA via writer com tenantId e motivo", async () => {
+    await provider.cancelar({
+      externalId: "V1",
+      tenantId: "T1",
+      motivo: "Cliente desistiu",
+    });
     expect(update).toHaveBeenCalledWith(
       expect.objectContaining({
         vistoriaId: "V1",
+        tenantId: "T1",
         newStatus: "CANCELADA",
         source: "interno",
+        motivo: "Cliente desistiu",
       }),
     );
   });

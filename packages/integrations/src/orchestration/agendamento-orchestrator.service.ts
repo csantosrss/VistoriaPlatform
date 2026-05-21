@@ -73,6 +73,7 @@ export class AgendamentoOrchestrator implements OnModuleInit {
       dataPreferida: event.dataPreferida
         ? new Date(event.dataPreferida)
         : undefined,
+      vistoriadorId: event.vistoriadorId,
     };
     try {
       const result = await provider.agendar(dto);

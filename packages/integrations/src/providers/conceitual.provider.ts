@@ -10,6 +10,7 @@ import { z } from "zod";
 import type {
   AgendamentoDto,
   AgendamentoResult,
+  CancelarDto,
   ConsultaResult,
   ProviderId,
 } from "../types/provider";
@@ -92,9 +93,10 @@ export class ConceitualProvider extends BaseHttpProvider {
     };
   }
 
-  async cancelar(externalId: string): Promise<void> {
+  async cancelar(dto: CancelarDto): Promise<void> {
     await this.http.post(
-      `/vistorias/${encodeURIComponent(externalId)}/cancelar`,
+      `/vistorias/${encodeURIComponent(dto.externalId)}/cancelar`,
+      dto.motivo ? { motivo: dto.motivo } : undefined,
     );
   }
 

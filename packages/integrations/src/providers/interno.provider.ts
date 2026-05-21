@@ -7,6 +7,7 @@ import {
 import type {
   AgendamentoDto,
   AgendamentoResult,
+  CancelarDto,
   ConsultaResult,
   IVistoriaProvider,
   PartnerHealth,
@@ -74,17 +75,17 @@ export class InternoProvider implements IVistoriaProvider {
     );
   }
 
-  async cancelar(externalId: string): Promise<void> {
+  async cancelar(dto: CancelarDto): Promise<void> {
     this.logger.log(
-      { vistoriaId: externalId },
+      { vistoriaId: dto.externalId, tenantId: dto.tenantId },
       "Cancelando vistoria interna (publica CANCELADA via writer)",
     );
     await this.statusWriter.update({
-      vistoriaId: externalId,
-      tenantId: "",
+      vistoriaId: dto.externalId,
+      tenantId: dto.tenantId,
       newStatus: "CANCELADA",
       source: this.providerId,
-      motivo: "Cancelado via InternoProvider.cancelar",
+      motivo: dto.motivo ?? "Cancelado via InternoProvider.cancelar",
     });
   }
 
