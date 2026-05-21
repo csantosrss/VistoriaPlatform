@@ -5,6 +5,7 @@ import {
   History,
   LayoutDashboard,
   LogOut,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ interface NavItem {
 const NAV_ITEMS: ReadonlyArray<NavItem> = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/vistorias", label: "Vistorias", icon: ClipboardList },
+  { to: "/users", label: "Usuários", icon: Users },
   { to: "/audit", label: "Auditoria", icon: History },
   { to: "/health", label: "Status", icon: Activity },
 ];
@@ -81,7 +83,7 @@ export function AdminLayout() {
             Sair
           </Button>
           <p className="text-[10px] text-muted-foreground">
-            v0.0.0 — Sprint 09
+            v0.0.0 — Sprint 19
           </p>
         </div>
       </aside>
