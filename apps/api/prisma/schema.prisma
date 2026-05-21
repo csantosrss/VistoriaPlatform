@@ -21,9 +21,10 @@ model Tenant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users     User[]
-  auditLogs AuditLog[]
-  vistorias Vistoria[]
+  users        User[]
+  auditLogs    AuditLog[]
+  vistorias    Vistoria[]
+  agendaSlots  AgendaSlot[]
 
   @@map("tenants")
 }
@@ -50,6 +51,7 @@ model User {
   tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   auditLogs    AuditLog[]
   vistoriasAtribuidas Vistoria[] @relation("VistoriadorAtribuido")
+  agendaSlots         AgendaSlot[] @relation("VistoriadorAgenda")
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -151,4 +153,27 @@ model VistoriaTransicao {
   @@index([vistoriaId])
   @@index([tenantId, createdAt])
   @@map("vistoria_transicoes")
+}
+
+/// Janela de agenda do vistoriador. Sprint 17 BE.
+/// `disponivel` distingue libera (true) de bloqueio (false) — mesma tabela
+/// para os dois conceitos. O motor de regras de routing pode no futuro
+/// consultar `(disponivel = true) AND (inicio, fim) cobre o slot desejado`.
+model AgendaSlot {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @db.Uuid
+  vistoriadorId String   @db.Uuid
+  inicio        DateTime
+  fim           DateTime
+  disponivel    Boolean  @default(true)
+  motivo        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant      Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vistoriador User   @relation("VistoriadorAgenda", fields: [vistoriadorId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, vistoriadorId, inicio])
+  @@index([tenantId, inicio, fim])
+  @@map("agenda_slots")
 }

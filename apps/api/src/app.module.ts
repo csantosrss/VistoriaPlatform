@@ -13,6 +13,8 @@ import { HealthModule } from "./health/health.module";
 import { AuthModule } from "./auth/auth.module";
 import { AuditLogsModule } from "./audit-logs/audit-logs.module";
 import { VistoriasModule } from "./vistorias/vistorias.module";
+import { UsersModule } from "./users/users.module";
+import { AgendaModule } from "./agenda/agenda.module";
 import { PrismaModule } from "./infrastructure/prisma/prisma.module";
 import { MessagingModule } from "./infrastructure/messaging/messaging.module";
 import { IntegrationsModule } from "@vistoria/integrations";
@@ -35,6 +37,8 @@ import { IntegrationsModule } from "@vistoria/integrations";
     HealthModule,
     AuditLogsModule,
     VistoriasModule,
+    UsersModule,
+    AgendaModule,
     IntegrationsModule.forRoot(),
   ],
 })
