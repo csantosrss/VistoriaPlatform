@@ -96,7 +96,7 @@ Após `pnpm dev:all`, o painel responde em http://localhost:5173 e cobre o fluxo
 
 ## Endpoints REST (apps/api)
 
-Documentação interativa em http://localhost:3000/api/docs. Conjunto vivo após o quarto ciclo:
+Documentação interativa em http://localhost:3000/api/docs. Conjunto vivo após o quinto ciclo:
 
 | Método | Rota                                           | Auth               | Entrou em |
 | ------ | ---------------------------------------------- | ------------------ | --------- |
@@ -118,6 +118,9 @@ Documentação interativa em http://localhost:3000/api/docs. Conjunto vivo após
 | POST   | `/api/v1/vistoriadores/:id/agenda`             | JWT (ADMIN/GESTOR) | S17       |
 | PATCH  | `/api/v1/vistoriadores/:id/agenda/:slotId`     | JWT (ADMIN/GESTOR) | S17       |
 | DELETE | `/api/v1/vistoriadores/:id/agenda/:slotId`     | JWT (ADMIN/GESTOR) | S17       |
+| GET    | `/api/v1/users/:id/cobertura`                  | JWT (ADMIN/GESTOR) | S22       |
+| POST   | `/api/v1/users/:id/cobertura`                  | JWT (ADMIN/GESTOR) | S22       |
+| DELETE | `/api/v1/users/:id/cobertura/:coberturaId`     | JWT (ADMIN/GESTOR) | S22       |
 | GET    | `/api/v1/audit-logs`                           | JWT (ADMIN/GESTOR) | S07       |
 | POST   | `/api/v1/integrations/webhooks/rede-vistorias` | HMAC público       | S03/S08   |
 | POST   | `/api/v1/integrations/webhooks/conceitual`     | HMAC público       | S03/S08   |

@@ -50,16 +50,16 @@ flowchart LR
 
 ## Containers
 
-| Container                | Tecnologia                      | Responsabilidade                                                                                                | Porta dev    |
-| ------------------------ | ------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------ |
-| `apps/api`               | NestJS 10 + TypeScript + Prisma | Domínio, SAGA, autenticação, audit, REST API, consumer `vistoria.status.changed`, Users + AgendaSlot CRUD (S17) | 3000         |
-| `apps/web`               | React 19 + Vite 5 + Tailwind    | Painel admin (gestores e administradores), refresh transparente, telas de Users + Agenda (S19)                  | 5173         |
-| `packages/api-contracts` | Zod + tsc (ESM)                 | Schemas e enums compartilhados FE↔BE (DTOs HTTP + event payloads BE↔IN)                                         | —            |
-| `packages/integrations`  | NestJS module + Axios + amqplib | Adapters de parceiros, webhook controller, RMQ writer + `AgendamentoOrchestrator`                               | —            |
-| Postgres 16              | container `vistoria-postgres`   | Banco principal (tenants, users, audit_logs, domínio)                                                           | 5433         |
-| Redis 7                  | container `vistoria-redis`      | Cache, locks distribuídos, futuros rate-limits                                                                  | 6379         |
-| RabbitMQ 3.13            | container `vistoria-rabbitmq`   | Exchange `vistoria.events` + filas `apps-api.events` (BE) e `integrations.events` (IN)                          | 5672 / 15672 |
-| MailHog                  | container `vistoria-mailhog`    | SMTP fake para dev                                                                                              | 1025 / 8025  |
+| Container                | Tecnologia                      | Responsabilidade                                                                                                                                                         | Porta dev    |
+| ------------------------ | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------ |
+| `apps/api`               | NestJS 10 + TypeScript + Prisma | Domínio, SAGA, autenticação, audit, REST API, consumer `vistoria.status.changed`, Users + AgendaSlot + **VistoriadorCobertura** CRUD                                     | 3000         |
+| `apps/web`               | React 19 + Vite 5 + Tailwind    | Painel admin (gestores e administradores), refresh transparente, telas de Users + Agenda + **Cobertura geográfica**; consome **IBGE** (`/localidades`) para autocomplete | 5173         |
+| `packages/api-contracts` | Zod + tsc (ESM)                 | Schemas e enums compartilhados FE↔BE (DTOs HTTP + event payloads BE↔IN)                                                                                                  | —            |
+| `packages/integrations`  | NestJS module + Axios + amqplib | Adapters de parceiros, webhook controller, RMQ writer + `AgendamentoOrchestrator`                                                                                        | —            |
+| Postgres 16              | container `vistoria-postgres`   | Banco principal (tenants, users, audit_logs, domínio)                                                                                                                    | 5433         |
+| Redis 7                  | container `vistoria-redis`      | Cache, locks distribuídos, futuros rate-limits                                                                                                                           | 6379         |
+| RabbitMQ 3.13            | container `vistoria-rabbitmq`   | Exchange `vistoria.events` + filas `apps-api.events` (BE) e `integrations.events` (IN)                                                                                   | 5672 / 15672 |
+| MailHog                  | container `vistoria-mailhog`    | SMTP fake para dev                                                                                                                                                       | 1025 / 8025  |
 
 ## Decisões que justificam o desenho
 
@@ -88,6 +88,8 @@ flowchart LR
 | `apps/web` → `apps/api`         | REST `auth/login` + `auth/me` + `auth/refresh`                              | HTTPS + JWT RS256                | S07 (BE) + S09 (FE) + S12 (BE refresh) + S14 (FE consumiu refresh)                                            |
 | `apps/web` → `apps/api`         | REST `vistorias` CRUD + `audit-logs` + `vistorias/stats` + `:id/transicoes` | HTTPS + JWT RS256                | S09 (FE plugou CRUD/audit) + S12 (BE stats/transicoes) + S14 (FE plugou stats/timeline)                       |
 | `apps/web` → `apps/api`         | REST `users` CRUD + `vistoriadores/:id/agenda` CRUD                         | HTTPS + JWT RS256 (ADMIN/GESTOR) | S17 (BE entregou) + S19 (FE plugou telas `/users` e `/vistoriadores/:id/agenda`)                              |
+| `apps/web` → `apps/api`         | REST `users/:id/cobertura` CRUD                                             | HTTPS + JWT RS256 (ADMIN/GESTOR) | S22 (BE) + S24 (FE — card embed em `/users/:id`)                                                              |
+| `apps/web` → IBGE               | GET `/api/v1/localidades/estados`, `/estados/:uf/municipios`                | HTTPS (público, sem auth)        | S24 (FE — autocomplete de UF/cidade no form de cobertura)                                                     |
 | `apps/api` → Postgres           | Prisma                                                                      | TCP (5432 interno)               | S02 (BE)                                                                                                      |
 | `apps/api` → RabbitMQ           | publish `vistoria.events` (genérico, `RmqPublisher`)                        | AMQP                             | S02 (BE)                                                                                                      |
 | `apps/api` → RabbitMQ           | publish `vistoria.routed` (planejado para BE Sprint 16+)                    | AMQP                             | **Planejado** — pedido em [agent-sync IN→BE](../agent-sync/2026-05-20-from-in-to-be-vistoria-routed-event.md) |
