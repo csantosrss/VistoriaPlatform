@@ -24,6 +24,10 @@ export const VistoriaStatusChangedEventSchema = z.object({
   source: z.string().min(1),
   correlationId: z.string().optional(),
   rawPayload: z.unknown().optional(),
+  /** Sprint 23 IN — vistoriador atribuído pelo provider quando estava
+   * no `VistoriaRoutedEvent`. BE consumer pode aplicar como
+   * `vistoria.vistoriadorId` quando presente. Optional para retro-compat. */
+  vistoriadorId: z.string().uuid().optional(),
 });
 export type VistoriaStatusChangedEvent = z.infer<
   typeof VistoriaStatusChangedEventSchema

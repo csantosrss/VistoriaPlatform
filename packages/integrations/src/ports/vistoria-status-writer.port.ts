@@ -42,4 +42,8 @@ export interface VistoriaStatusUpdate {
   correlationId?: string;
   /** Payload bruto recebido do parceiro (para audit). */
   rawPayload?: unknown;
+  /** Vistoriador atribuído (Sprint 23 IN — propagado quando providers
+   * agendam com um vistoriador específico). BE consumer aplica em
+   * `vistoria.vistoriadorId` quando presente. */
+  vistoriadorId?: string;
 }

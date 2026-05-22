@@ -105,6 +105,15 @@ export class VistoriaStatusChangedHandler implements OnModuleInit {
 
       const updateData: Prisma.VistoriaUpdateInput = {
         status: event.newStatus,
+        // Sprint 23 IN: aplica vistoriadorId quando presente (sem
+        // sobrescrever quando ausente — preserva atribuição anterior).
+        ...(event.vistoriadorId
+          ? {
+              vistoriador: {
+                connect: { id: event.vistoriadorId },
+              },
+            }
+          : {}),
         ...(event.newStatus === StatusVistoria.CONCLUIDA
           ? { concluidoEm: new Date() }
           : {}),

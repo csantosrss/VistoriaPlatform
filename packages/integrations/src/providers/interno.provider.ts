@@ -48,6 +48,7 @@ export class InternoProvider implements IVistoriaProvider {
         vistoriaId: dto.vistoriaId,
         tenantId: dto.tenantId,
         tipo: dto.tipo,
+        vistoriadorId: dto.vistoriadorId,
         dataAgendada: dataAgendada.toISOString(),
       },
       "Vistoria atribuída à equipe interna",
@@ -58,6 +59,10 @@ export class InternoProvider implements IVistoriaProvider {
       newStatus: "AGENDADA",
       source: this.providerId,
       motivo: "Atribuída à equipe interna",
+      // Sprint 23 IN: propaga vistoriadorId quando o BE pré-atribuiu
+      // (campo opcional em VistoriaRoutedEvent desde S18). Consumer BE
+      // pode aplicar `vistoria.vistoriadorId` quando vir o evento.
+      vistoriadorId: dto.vistoriadorId,
     });
     return {
       externalId: dto.vistoriaId,
