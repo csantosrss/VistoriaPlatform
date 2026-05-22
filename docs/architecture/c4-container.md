@@ -50,16 +50,16 @@ flowchart LR
 
 ## Containers
 
-| Container                | Tecnologia                      | Responsabilidade                                                                       | Porta dev    |
-| ------------------------ | ------------------------------- | -------------------------------------------------------------------------------------- | ------------ |
-| `apps/api`               | NestJS 10 + TypeScript + Prisma | Domínio, SAGA, autenticação, audit, REST API, consumer `vistoria.status.changed`       | 3000         |
-| `apps/web`               | React 19 + Vite 5 + Tailwind    | Painel admin (gestores e administradores), refresh transparente                        | 5173         |
-| `packages/api-contracts` | Zod + tsc (ESM)                 | Schemas e enums compartilhados FE↔BE (DTOs HTTP + event payloads BE↔IN)                | —            |
-| `packages/integrations`  | NestJS module + Axios + amqplib | Adapters de parceiros, webhook controller, RMQ writer + `AgendamentoOrchestrator`      | —            |
-| Postgres 16              | container `vistoria-postgres`   | Banco principal (tenants, users, audit_logs, domínio)                                  | 5433         |
-| Redis 7                  | container `vistoria-redis`      | Cache, locks distribuídos, futuros rate-limits                                         | 6379         |
-| RabbitMQ 3.13            | container `vistoria-rabbitmq`   | Exchange `vistoria.events` + filas `apps-api.events` (BE) e `integrations.events` (IN) | 5672 / 15672 |
-| MailHog                  | container `vistoria-mailhog`    | SMTP fake para dev                                                                     | 1025 / 8025  |
+| Container                | Tecnologia                      | Responsabilidade                                                                                                | Porta dev    |
+| ------------------------ | ------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------ |
+| `apps/api`               | NestJS 10 + TypeScript + Prisma | Domínio, SAGA, autenticação, audit, REST API, consumer `vistoria.status.changed`, Users + AgendaSlot CRUD (S17) | 3000         |
+| `apps/web`               | React 19 + Vite 5 + Tailwind    | Painel admin (gestores e administradores), refresh transparente, telas de Users + Agenda (S19)                  | 5173         |
+| `packages/api-contracts` | Zod + tsc (ESM)                 | Schemas e enums compartilhados FE↔BE (DTOs HTTP + event payloads BE↔IN)                                         | —            |
+| `packages/integrations`  | NestJS module + Axios + amqplib | Adapters de parceiros, webhook controller, RMQ writer + `AgendamentoOrchestrator`                               | —            |
+| Postgres 16              | container `vistoria-postgres`   | Banco principal (tenants, users, audit_logs, domínio)                                                           | 5433         |
+| Redis 7                  | container `vistoria-redis`      | Cache, locks distribuídos, futuros rate-limits                                                                  | 6379         |
+| RabbitMQ 3.13            | container `vistoria-rabbitmq`   | Exchange `vistoria.events` + filas `apps-api.events` (BE) e `integrations.events` (IN)                          | 5672 / 15672 |
+| MailHog                  | container `vistoria-mailhog`    | SMTP fake para dev                                                                                              | 1025 / 8025  |
 
 ## Decisões que justificam o desenho
 
@@ -83,18 +83,19 @@ flowchart LR
 
 ## Fluxos atuais entre containers
 
-| Origem                          | Destino                                                                     | Protocolo / topic  | Quando entrou                                                                                                 |
-| ------------------------------- | --------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `apps/web` → `apps/api`         | REST `auth/login` + `auth/me` + `auth/refresh`                              | HTTPS + JWT RS256  | S07 (BE) + S09 (FE) + S12 (BE refresh) + S14 (FE consumiu refresh)                                            |
-| `apps/web` → `apps/api`         | REST `vistorias` CRUD + `audit-logs` + `vistorias/stats` + `:id/transicoes` | HTTPS + JWT RS256  | S09 (FE plugou CRUD/audit) + S12 (BE stats/transicoes) + S14 (FE plugou stats/timeline)                       |
-| `apps/api` → Postgres           | Prisma                                                                      | TCP (5432 interno) | S02 (BE)                                                                                                      |
-| `apps/api` → RabbitMQ           | publish `vistoria.events` (genérico, `RmqPublisher`)                        | AMQP               | S02 (BE)                                                                                                      |
-| `apps/api` → RabbitMQ           | publish `vistoria.routed` (planejado para BE Sprint 16+)                    | AMQP               | **Planejado** — pedido em [agent-sync IN→BE](../agent-sync/2026-05-20-from-in-to-be-vistoria-routed-event.md) |
-| `integrations` → RabbitMQ       | publish `vistoria.status.changed` (com `eventId`)                           | AMQP               | S08 (IN) + S13 (IN — `eventId`; ver [ADR-015](../decisions/ADR-015-dedup-eventid-writer.md))                  |
-| RabbitMQ → `apps/api`           | consume `vistoria.status.changed` (fila `apps-api.events`)                  | AMQP               | S12 (BE — handler idempotente + audit `VISTORIA.STATUS_CHANGED`)                                              |
-| RabbitMQ → `integrations`       | consume `vistoria.routed` (fila `integrations.events`, dormente)            | AMQP               | S13 (IN — `AgendamentoOrchestrator`); dispara `agendar()` no provider                                         |
-| Parceiro RV/CC → `integrations` | webhook HTTPS + HMAC                                                        | HTTPS              | S03 (IN) / reescrito no S08                                                                                   |
-| `integrations` → Parceiro RV/CC | REST + HMAC                                                                 | HTTPS              | S03 (esqueleto); `agendar()` real aguarda BE publicar `vistoria.routed`                                       |
+| Origem                          | Destino                                                                     | Protocolo / topic                | Quando entrou                                                                                                 |
+| ------------------------------- | --------------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `apps/web` → `apps/api`         | REST `auth/login` + `auth/me` + `auth/refresh`                              | HTTPS + JWT RS256                | S07 (BE) + S09 (FE) + S12 (BE refresh) + S14 (FE consumiu refresh)                                            |
+| `apps/web` → `apps/api`         | REST `vistorias` CRUD + `audit-logs` + `vistorias/stats` + `:id/transicoes` | HTTPS + JWT RS256                | S09 (FE plugou CRUD/audit) + S12 (BE stats/transicoes) + S14 (FE plugou stats/timeline)                       |
+| `apps/web` → `apps/api`         | REST `users` CRUD + `vistoriadores/:id/agenda` CRUD                         | HTTPS + JWT RS256 (ADMIN/GESTOR) | S17 (BE entregou) + S19 (FE plugou telas `/users` e `/vistoriadores/:id/agenda`)                              |
+| `apps/api` → Postgres           | Prisma                                                                      | TCP (5432 interno)               | S02 (BE)                                                                                                      |
+| `apps/api` → RabbitMQ           | publish `vistoria.events` (genérico, `RmqPublisher`)                        | AMQP                             | S02 (BE)                                                                                                      |
+| `apps/api` → RabbitMQ           | publish `vistoria.routed` (planejado para BE Sprint 16+)                    | AMQP                             | **Planejado** — pedido em [agent-sync IN→BE](../agent-sync/2026-05-20-from-in-to-be-vistoria-routed-event.md) |
+| `integrations` → RabbitMQ       | publish `vistoria.status.changed` (com `eventId`)                           | AMQP                             | S08 (IN) + S13 (IN — `eventId`; ver [ADR-015](../decisions/ADR-015-dedup-eventid-writer.md))                  |
+| RabbitMQ → `apps/api`           | consume `vistoria.status.changed` (fila `apps-api.events`)                  | AMQP                             | S12 (BE — handler idempotente + audit `VISTORIA.STATUS_CHANGED`)                                              |
+| RabbitMQ → `integrations`       | consume `vistoria.routed` (fila `integrations.events`, dormente)            | AMQP                             | S13 (IN — `AgendamentoOrchestrator`); dispara `agendar()` no provider                                         |
+| Parceiro RV/CC → `integrations` | webhook HTTPS + HMAC                                                        | HTTPS                            | S03 (IN) / reescrito no S08                                                                                   |
+| `integrations` → Parceiro RV/CC | REST + HMAC                                                                 | HTTPS                            | S03 (esqueleto); `agendar()` real aguarda BE publicar `vistoria.routed`                                       |
 
 ## Fluxo async BE↔IN (consolidado pós-ciclo 3)
 

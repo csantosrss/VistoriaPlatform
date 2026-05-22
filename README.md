@@ -82,19 +82,21 @@ Conexões TCP: Postgres `localhost:5433` (5433 e não 5432 para coexistir com Po
 
 Após `pnpm dev:all`, o painel responde em http://localhost:5173 e cobre o fluxo ponta-a-ponta da SAGA. Telas funcionais:
 
-| Rota              | O que faz                                                                                                     |
-| ----------------- | ------------------------------------------------------------------------------------------------------------- |
-| `/login`          | Login real contra `POST /api/v1/auth/login` — par access + refresh; refresh transparente no `apiClient` (S14) |
-| `/`               | Dashboard com 4 KPIs vivos via `GET /vistorias/stats` (Solicitadas / Roteadas / Em execução / Concluídas)     |
-| `/vistorias`      | Lista paginada (20/pág) com filtros por status e tipo                                                         |
-| `/vistorias/novo` | Criação de Vistoria — entra direto em `ROTEADA` (routing inline com `providerId` desde S12)                   |
-| `/vistorias/:id`  | Detalhe completo + **timeline da SAGA** (S14) + cancelamento condicionado aos estados pré-execução            |
-| `/audit`          | Audit log filtrável — inclui `VISTORIA.STATUS_CHANGED` desde S12 (BE consome eventos do IN via RMQ)           |
-| `/health`         | Status dos componentes do `apps/api` (Postgres, Redis, RabbitMQ)                                              |
+| Rota                        | O que faz                                                                                                     |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `/login`                    | Login real contra `POST /api/v1/auth/login` — par access + refresh; refresh transparente no `apiClient` (S14) |
+| `/`                         | Dashboard com 4 KPIs vivos via `GET /vistorias/stats` (Solicitadas / Roteadas / Em execução / Concluídas)     |
+| `/vistorias`                | Lista paginada (20/pág) com filtros por status e tipo                                                         |
+| `/vistorias/novo`           | Criação de Vistoria — entra direto em `ROTEADA` (routing inline com `providerId` desde S12)                   |
+| `/vistorias/:id`            | Detalhe completo + **timeline da SAGA** (S14) + cancelamento condicionado aos estados pré-execução            |
+| `/audit`                    | Audit log filtrável — inclui `VISTORIA.STATUS_CHANGED` desde S12 (BE consome eventos do IN via RMQ)           |
+| `/users`                    | Lista, criação e edição de usuários (S19); soft-delete; atalho de agenda para role VISTORIADOR                |
+| `/vistoriadores/:id/agenda` | Cadastro e gestão da agenda do vistoriador (slots libera/bloqueio com motivo) (S19)                           |
+| `/health`                   | Status dos componentes do `apps/api` (Postgres, Redis, RabbitMQ)                                              |
 
 ## Endpoints REST (apps/api)
 
-Documentação interativa em http://localhost:3000/api/docs. Conjunto vivo após o terceiro ciclo:
+Documentação interativa em http://localhost:3000/api/docs. Conjunto vivo após o quarto ciclo:
 
 | Método | Rota                                           | Auth               | Entrou em |
 | ------ | ---------------------------------------------- | ------------------ | --------- |
@@ -107,6 +109,15 @@ Documentação interativa em http://localhost:3000/api/docs. Conjunto vivo após
 | GET    | `/api/v1/vistorias/:id/transicoes`             | JWT                | S12       |
 | POST   | `/api/v1/vistorias`                            | JWT                | S07       |
 | POST   | `/api/v1/vistorias/:id/cancelar`               | JWT                | S07       |
+| GET    | `/api/v1/users`                                | JWT (ADMIN/GESTOR) | S17       |
+| POST   | `/api/v1/users`                                | JWT (ADMIN/GESTOR) | S17       |
+| GET    | `/api/v1/users/:id`                            | JWT (ADMIN/GESTOR) | S17       |
+| PATCH  | `/api/v1/users/:id`                            | JWT (ADMIN/GESTOR) | S17       |
+| DELETE | `/api/v1/users/:id`                            | JWT (ADMIN/GESTOR) | S17       |
+| GET    | `/api/v1/vistoriadores/:id/agenda`             | JWT (ADMIN/GESTOR) | S17       |
+| POST   | `/api/v1/vistoriadores/:id/agenda`             | JWT (ADMIN/GESTOR) | S17       |
+| PATCH  | `/api/v1/vistoriadores/:id/agenda/:slotId`     | JWT (ADMIN/GESTOR) | S17       |
+| DELETE | `/api/v1/vistoriadores/:id/agenda/:slotId`     | JWT (ADMIN/GESTOR) | S17       |
 | GET    | `/api/v1/audit-logs`                           | JWT (ADMIN/GESTOR) | S07       |
 | POST   | `/api/v1/integrations/webhooks/rede-vistorias` | HMAC público       | S03/S08   |
 | POST   | `/api/v1/integrations/webhooks/conceitual`     | HMAC público       | S03/S08   |
