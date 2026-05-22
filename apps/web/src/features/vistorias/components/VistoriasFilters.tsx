@@ -4,12 +4,14 @@ import {
   type StatusVistoria,
   type TipoVistoria,
 } from "@vistoria/api-contracts";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 
 export interface VistoriasFiltersValue {
   status?: StatusVistoria;
   tipo?: TipoVistoria;
+  codigoImovelExterno?: string;
 }
 
 interface Props {
@@ -63,6 +65,21 @@ export function VistoriasFilters({ value, onChange }: Props) {
             </option>
           ))}
         </Select>
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="filter-codigo">Código do imóvel</Label>
+        <Input
+          id="filter-codigo"
+          placeholder="Ex.: IMV-2026-001"
+          value={value.codigoImovelExterno ?? ""}
+          onChange={(e) =>
+            onChange({
+              ...value,
+              codigoImovelExterno: e.target.value || undefined,
+            })
+          }
+          className="w-56"
+        />
       </div>
     </div>
   );

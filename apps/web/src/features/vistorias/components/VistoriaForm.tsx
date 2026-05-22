@@ -23,6 +23,7 @@ export function VistoriaForm() {
     resolver: zodResolver(CreateVistoriaRequestSchema),
     defaultValues: {
       tipo: "ENTRADA",
+      codigoImovelExterno: "",
       enderecoLogradouro: "",
       enderecoNumero: "",
       enderecoComplemento: "",
@@ -60,17 +61,30 @@ export function VistoriaForm() {
     >
       <section className="space-y-3">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Tipo
+          Identificação
         </h3>
-        <div className="grid gap-2">
-          <Label htmlFor="tipo">Tipo de vistoria</Label>
-          <Select id="tipo" {...register("tipo")} className="w-48">
-            {TipoVistoriaSchema.options.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </Select>
+        <div className="grid gap-4 sm:grid-cols-[1fr_220px]">
+          <Field
+            id="codigoImovelExterno"
+            label="Código do imóvel (ERP)"
+            error={errors.codigoImovelExterno?.message}
+          >
+            <Input
+              id="codigoImovelExterno"
+              placeholder="Ex.: IMV-2026-001"
+              {...register("codigoImovelExterno")}
+            />
+          </Field>
+          <div className="grid gap-2">
+            <Label htmlFor="tipo">Tipo de vistoria</Label>
+            <Select id="tipo" {...register("tipo")}>
+              {TipoVistoriaSchema.options.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </Select>
+          </div>
         </div>
       </section>
 

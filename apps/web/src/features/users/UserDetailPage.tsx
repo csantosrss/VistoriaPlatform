@@ -1,18 +1,26 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AlertCircle, ArrowLeft, CalendarDays } from "lucide-react";
-import type { Role, UpdateUserRequest } from "@vistoria/api-contracts";
+import {
+  ProviderIdSchema,
+  type ProviderId,
+  type Role,
+  type UpdateUserRequest,
+} from "@vistoria/api-contracts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CoberturaCard } from "@/features/cobertura/components/CoberturaCard";
 import { useUser } from "./hooks/use-user";
 import { useUpdateUser } from "./hooks/use-update-user";
 import { useDeactivateUser } from "./hooks/use-deactivate-user";
 
 const ROLES: Role[] = ["ADMIN", "GESTOR", "VISTORIADOR", "CLIENTE", "PARCEIRO"];
+const PROVIDER_IDS = ProviderIdSchema.options;
 
 export function UserDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -22,9 +30,15 @@ export function UserDetailPage() {
   const [name, setName] = useState<string | undefined>();
   const [password, setPassword] = useState("");
   const [roles, setRoles] = useState<Role[] | undefined>();
+  const [providerId, setProviderId] = useState<ProviderId | undefined>();
 
   const effectiveName = name ?? user?.name ?? "";
   const effectiveRoles = roles ?? user?.roles ?? [];
+  const effectiveProviderId =
+    providerId !== undefined
+      ? providerId
+      : ((user?.providerId ?? "interno") as ProviderId);
+  const isVistoriador = effectiveRoles.includes("VISTORIADOR");
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,6 +47,13 @@ export function UserDetailPage() {
     if (password) patch.password = password;
     if (roles && JSON.stringify(roles) !== JSON.stringify(user?.roles)) {
       patch.roles = roles;
+    }
+    // providerId só viaja se a role final inclui VISTORIADOR e mudou.
+    if (
+      effectiveRoles.includes("VISTORIADOR") &&
+      effectiveProviderId !== user?.providerId
+    ) {
+      patch.providerId = effectiveProviderId;
     }
     if (Object.keys(patch).length === 0) return;
     updateMut.mutate(patch, {
@@ -57,6 +78,7 @@ export function UserDetailPage() {
             {user.active ? "Ativo" : "Inativo"}
           </Badge>
         )}
+        {user?.providerId && <Badge variant="outline">{user.providerId}</Badge>}
       </div>
 
       {isLoading && <Skeleton className="h-64" />}
@@ -135,6 +157,30 @@ export function UserDetailPage() {
                     })}
                   </div>
                 </div>
+
+                {isVistoriador && (
+                  <div className="space-y-2">
+                    <Label htmlFor="providerId">Provider</Label>
+                    <Select
+                      id="providerId"
+                      value={effectiveProviderId}
+                      onChange={(e) =>
+                        setProviderId(e.target.value as ProviderId)
+                      }
+                    >
+                      {PROVIDER_IDS.map((p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ))}
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Canal do vistoriador. Necessário para cadastrar agenda e
+                      cobertura.
+                    </p>
+                  </div>
+                )}
+
                 {updateMut.error && (
                   <p className="text-sm text-destructive">
                     {(updateMut.error as Error).message}
@@ -202,6 +248,13 @@ export function UserDetailPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Coberturas geográficas só fazem sentido para VISTORIADOR. */}
+          {user.roles.includes("VISTORIADOR") && (
+            <div className="lg:col-span-3">
+              <CoberturaCard userId={user.id} />
+            </div>
+          )}
         </div>
       )}
     </div>

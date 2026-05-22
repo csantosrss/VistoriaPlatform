@@ -1,18 +1,21 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { Loader2 } from "lucide-react";
 import { isAxiosError } from "axios";
 import {
   CreateUserRequestSchema,
+  ProviderIdSchema,
   RoleSchema,
   type CreateUserRequest,
 } from "@vistoria/api-contracts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { useCreateUser } from "../hooks/use-create-user";
 
 const ROLES = RoleSchema.options;
+const PROVIDER_IDS = ProviderIdSchema.options;
 
 export function UserForm() {
   const {
@@ -27,11 +30,16 @@ export function UserForm() {
       name: "",
       password: "",
       roles: ["VISTORIADOR"],
+      providerId: "interno",
       active: true,
     },
   });
   const { mutate, isPending, error } = useCreateUser();
   const submitting = isSubmitting || isPending;
+
+  // providerId só faz sentido para VISTORIADOR — mostra/esconde conforme.
+  const watchedRoles = useWatch({ control, name: "roles" });
+  const showProviderId = watchedRoles?.includes("VISTORIADOR");
 
   const errorMessage = error
     ? isAxiosError(error) && error.response?.data?.message
@@ -41,7 +49,16 @@ export function UserForm() {
 
   return (
     <form
-      onSubmit={handleSubmit((values) => mutate(values))}
+      onSubmit={handleSubmit((values) =>
+        mutate({
+          ...values,
+          // Se a role final não inclui VISTORIADOR, manda null para o BE
+          // sobrescrever default do form.
+          providerId: values.roles.includes("VISTORIADOR")
+            ? values.providerId
+            : null,
+        }),
+      )}
       className="space-y-6"
       noValidate
     >
@@ -108,6 +125,28 @@ export function UserForm() {
           </p>
         )}
       </section>
+
+      {showProviderId && (
+        <section className="space-y-3">
+          <Field
+            id="providerId"
+            label="Provider (canal do vistoriador)"
+            error={errors.providerId?.message}
+          >
+            <Select id="providerId" {...register("providerId")}>
+              {PROVIDER_IDS.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Obrigatório para VISTORIADOR — define se o vistoriador é interno
+              (Auxiliadora) ou de parceiro (Rede Vistorias / Conceitual).
+            </p>
+          </Field>
+        </section>
+      )}
 
       {errorMessage && (
         <p className="text-sm text-destructive">{errorMessage}</p>
