@@ -17,6 +17,13 @@ export default defineConfig({
         target: "http://localhost:3000",
         changeOrigin: true,
       },
+      // BE serve /v1/health (versioning URI ligado; exclude tira /api mas
+      // não a versão). Regra /v1 cobre o health e qualquer rota futura
+      // versionada que não esteja sob /api.
+      "/v1": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
       "/health": {
         target: "http://localhost:3000",
         changeOrigin: true,
