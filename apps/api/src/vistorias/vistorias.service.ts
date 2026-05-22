@@ -37,6 +37,7 @@ function toDto(v: VistoriaModel): VistoriaDto {
     tenantId: v.tenantId,
     status: v.status,
     tipo: v.tipo,
+    codigoImovelExterno: v.codigoImovelExterno,
     enderecoLogradouro: v.enderecoLogradouro,
     enderecoNumero: v.enderecoNumero,
     enderecoComplemento: v.enderecoComplemento,
@@ -98,6 +99,7 @@ export class VistoriasService {
           tenantId: actor.tenantId,
           status: StatusVistoria.ROTEADA,
           tipo: input.tipo,
+          codigoImovelExterno: input.codigoImovelExterno,
           providerId: decision.providerId,
           enderecoLogradouro: input.enderecoLogradouro,
           enderecoNumero: input.enderecoNumero,
@@ -168,6 +170,9 @@ export class VistoriasService {
       ...(query.status ? { status: query.status } : {}),
       ...(query.tipo ? { tipo: query.tipo } : {}),
       ...(query.vistoriadorId ? { vistoriadorId: query.vistoriadorId } : {}),
+      ...(query.codigoImovelExterno
+        ? { codigoImovelExterno: query.codigoImovelExterno }
+        : {}),
       ...(query.from || query.to
         ? {
             createdAt: {

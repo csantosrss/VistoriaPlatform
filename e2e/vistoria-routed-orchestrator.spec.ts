@@ -86,6 +86,7 @@ test.describe("Fluxo async BE↔IN — orchestrator de vistoria.routed", () => {
       headers: auth,
       data: {
         tipo: "SAIDA",
+        codigoImovelExterno: "IMOVEL-ORCH-001",
         enderecoLogradouro: "Rua Orchestrator",
         enderecoNumero: "42",
         enderecoBairro: "Centro",

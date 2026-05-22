@@ -15,6 +15,7 @@ import { AuditLogsModule } from "./audit-logs/audit-logs.module";
 import { VistoriasModule } from "./vistorias/vistorias.module";
 import { UsersModule } from "./users/users.module";
 import { AgendaModule } from "./agenda/agenda.module";
+import { CoberturaModule } from "./cobertura/cobertura.module";
 import { PrismaModule } from "./infrastructure/prisma/prisma.module";
 import { MessagingModule } from "./infrastructure/messaging/messaging.module";
 import { IntegrationsModule } from "@vistoria/integrations";
@@ -39,6 +40,7 @@ import { IntegrationsModule } from "@vistoria/integrations";
     VistoriasModule,
     UsersModule,
     AgendaModule,
+    CoberturaModule,
     IntegrationsModule.forRoot(),
   ],
 })

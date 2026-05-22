@@ -4,3 +4,4 @@ export * from "./vistoria/index.js";
 export * from "./webhooks/index.js";
 export * from "./users/index.js";
 export * from "./agenda/index.js";
+export * from "./cobertura/index.js";

@@ -36,14 +36,16 @@ function toDto(s: AgendaSlotModel): AgendaSlotDto {
 export class AgendaService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Garante que o `vistoriadorId` referencia um User do tenant com role VISTORIADOR ativo. */
+  /** Garante que o `vistoriadorId` referencia um User do tenant com role
+   * VISTORIADOR ativo **e com `providerId` definido** (Sprint 22 BE: o
+   * routing futuro precisa do canal para casar com a cobertura geográfica). */
   private async assertVistoriador(
     tenantId: string,
     vistoriadorId: string,
   ): Promise<void> {
     const user = await this.prisma.user.findFirst({
       where: { id: vistoriadorId, tenantId },
-      select: { id: true, roles: true, active: true },
+      select: { id: true, roles: true, active: true, providerId: true },
     });
     if (!user) {
       throw new NotFoundException("Vistoriador não encontrado.");
@@ -54,6 +56,11 @@ export class AgendaService {
     if (!user.roles.includes(Role.VISTORIADOR)) {
       throw new BadRequestException(
         "Usuário informado não tem role VISTORIADOR.",
+      );
+    }
+    if (!user.providerId) {
+      throw new BadRequestException(
+        "Vistoriador precisa ter `providerId` definido antes de cadastrar agenda. Atualize via PATCH /users/:id.",
       );
     }
   }

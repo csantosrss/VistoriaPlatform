@@ -65,6 +65,7 @@ test.describe("Auth + Vistorias E2E", () => {
       headers: auth,
       data: {
         tipo: "ENTRADA",
+        codigoImovelExterno: "IMOVEL-E2E-001",
         enderecoLogradouro: "Rua E2E",
         enderecoNumero: "100",
         enderecoBairro: "Centro",
@@ -185,6 +186,7 @@ test.describe("Auth + Vistorias E2E", () => {
       headers: auth,
       data: {
         tipo: "ENTRADA",
+        codigoImovelExterno: "IMOVEL-TRANSICOES-001",
         enderecoLogradouro: "Rua Transicao",
         enderecoNumero: "1",
         enderecoBairro: "Centro",

@@ -4,7 +4,9 @@ import {
   IsEnum,
   IsInt,
   IsOptional,
+  IsString,
   IsUUID,
+  Length,
   Max,
   Min,
 } from "class-validator";
@@ -30,6 +32,11 @@ export class ListVistoriasQueryDto {
   @IsOptional()
   @IsUUID()
   vistoriadorId?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(1, 100)
+  codigoImovelExterno?: string;
 
   @IsOptional()
   @Type(() => Number)

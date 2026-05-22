@@ -47,6 +47,7 @@ test.describe("Users CRUD", () => {
         name: "Vistoriador E2E",
         password: "senha-forte-e2e-1",
         roles: ["VISTORIADOR"],
+        providerId: "interno",
       },
     });
     expect(create.status()).toBe(201);
@@ -115,6 +116,7 @@ test.describe("Users CRUD", () => {
         name: "Primeiro",
         password: "senha-forte-1",
         roles: ["VISTORIADOR"],
+        providerId: "interno",
       },
     });
     expect(first.status()).toBe(201);
@@ -126,6 +128,7 @@ test.describe("Users CRUD", () => {
         name: "Segundo",
         password: "senha-forte-2",
         roles: ["VISTORIADOR"],
+        providerId: "interno",
       },
     });
     expect(second.status()).toBe(409);
@@ -145,6 +148,7 @@ test.describe("Agenda CRUD", () => {
         name: "Vistoriador Agenda",
         password: "senha-forte-1",
         roles: ["VISTORIADOR"],
+        providerId: "interno",
       },
     });
     expect(userResp.status()).toBe(201);
@@ -219,6 +223,7 @@ test.describe("Agenda CRUD", () => {
         name: "X",
         password: "senha-forte-1",
         roles: ["VISTORIADOR"],
+        providerId: "interno",
       },
     });
     const vist = await userResp.json();

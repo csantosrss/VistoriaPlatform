@@ -84,6 +84,7 @@ describe("VistoriasService", () => {
 
       const result = await service.create(actor, {
         tipo: TipoVistoria.ENTRADA,
+        codigoImovelExterno: "IMOVEL-001",
         enderecoLogradouro: "Rua B",
         enderecoNumero: "10",
         enderecoBairro: "Centro",
@@ -137,6 +138,7 @@ describe("VistoriasService", () => {
 
       const result = await service.create(actor, {
         tipo: TipoVistoria.SAIDA,
+        codigoImovelExterno: "IMOVEL-002",
         enderecoLogradouro: "Rua C",
         enderecoNumero: "20",
         enderecoBairro: "Centro",

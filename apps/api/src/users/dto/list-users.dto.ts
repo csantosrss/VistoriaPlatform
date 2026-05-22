@@ -2,6 +2,7 @@ import { Type } from "class-transformer";
 import {
   IsBoolean,
   IsEnum,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -10,6 +11,9 @@ import {
   Min,
 } from "class-validator";
 import { Role } from "@prisma/client";
+import type { UserProviderId } from "./create-user.dto";
+
+const PROVIDER_IDS = ["rede-vistorias", "conceitual", "interno"] as const;
 
 export class ListUsersQueryDto {
   @IsOptional()
@@ -20,6 +24,10 @@ export class ListUsersQueryDto {
   @Type(() => Boolean)
   @IsBoolean()
   active?: boolean;
+
+  @IsOptional()
+  @IsIn(PROVIDER_IDS)
+  providerId?: UserProviderId;
 
   @IsOptional()
   @IsString()

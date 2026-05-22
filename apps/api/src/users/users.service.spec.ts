@@ -27,6 +27,7 @@ function userFixture(overrides: Partial<Record<string, unknown>> = {}) {
     passwordHash: "hash",
     roles: [Role.VISTORIADOR],
     active: true,
+    providerId: "interno",
     createdAt: now,
     updatedAt: now,
     ...overrides,
@@ -59,7 +60,7 @@ describe("UsersService", () => {
   });
 
   describe("create", () => {
-    it("cria usuário e grava audit USER.CREATED", async () => {
+    it("cria vistoriador com providerId e grava audit USER.CREATED", async () => {
       tx.user.findFirst.mockResolvedValueOnce(null);
       tx.user.create.mockResolvedValueOnce(userFixture());
 
@@ -68,14 +69,17 @@ describe("UsersService", () => {
         name: "Vistoriador",
         password: "senha-forte-123",
         roles: [Role.VISTORIADOR],
+        providerId: "interno",
       });
 
       expect(result.email).toBe("vistoriador@example.com");
+      expect(result.providerId).toBe("interno");
       expect(tx.user.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             tenantId: actor.tenantId,
             roles: [Role.VISTORIADOR],
+            providerId: "interno",
             active: true,
           }),
         }),
@@ -83,6 +87,36 @@ describe("UsersService", () => {
       expect(tx.auditLog.create).toHaveBeenCalledWith({
         data: expect.objectContaining({ action: "USER.CREATED" }),
       });
+    });
+
+    it("rejeita 400 quando role VISTORIADOR sem providerId", async () => {
+      await expect(
+        service.create(actor, {
+          email: "x@x.com",
+          name: "X",
+          password: "senha-forte",
+          roles: [Role.VISTORIADOR],
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it("cria GESTOR sem providerId (ignora se informado)", async () => {
+      tx.user.findFirst.mockResolvedValueOnce(null);
+      tx.user.create.mockResolvedValueOnce(
+        userFixture({ roles: [Role.GESTOR], providerId: null }),
+      );
+      await service.create(actor, {
+        email: "gestor@x.com",
+        name: "G",
+        password: "senha-forte",
+        roles: [Role.GESTOR],
+        providerId: "interno",
+      });
+      expect(tx.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ providerId: null }),
+        }),
+      );
     });
 
     it("rejeita com 409 quando o e-mail já existe no tenant", async () => {
@@ -95,6 +129,37 @@ describe("UsersService", () => {
           roles: [Role.GESTOR],
         }),
       ).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
+
+  describe("update — providerId invariant", () => {
+    it("400 ao tentar mudar para role VISTORIADOR sem providerId atual", async () => {
+      const current = userFixture({
+        roles: [Role.GESTOR],
+        providerId: null,
+      });
+      tx.user.findFirst.mockResolvedValueOnce(current);
+
+      await expect(
+        service.update(actor, current.id, { roles: [Role.VISTORIADOR] }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it("limpa providerId ao remover VISTORIADOR das roles", async () => {
+      const current = userFixture({ providerId: "interno" });
+      tx.user.findFirst.mockResolvedValueOnce(current);
+      tx.user.update.mockResolvedValueOnce({
+        ...current,
+        roles: [Role.GESTOR],
+        providerId: null,
+      });
+
+      await service.update(actor, current.id, { roles: [Role.GESTOR] });
+      expect(tx.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ providerId: null }),
+        }),
+      );
       expect(tx.user.create).not.toHaveBeenCalled();
     });
   });

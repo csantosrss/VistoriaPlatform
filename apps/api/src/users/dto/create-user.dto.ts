@@ -4,11 +4,15 @@ import {
   IsBoolean,
   IsEmail,
   IsEnum,
+  IsIn,
   IsOptional,
   IsString,
   Length,
 } from "class-validator";
 import { Role } from "@prisma/client";
+
+const PROVIDER_IDS = ["rede-vistorias", "conceitual", "interno"] as const;
+export type UserProviderId = (typeof PROVIDER_IDS)[number];
 
 export class CreateUserDto {
   @IsEmail()
@@ -26,6 +30,12 @@ export class CreateUserDto {
   @ArrayMinSize(1)
   @IsEnum(Role, { each: true })
   roles!: Role[];
+
+  /** Sprint 22 BE — obrigatório quando `roles` inclui VISTORIADOR
+   * (validado no service, não no DTO, porque envolve cross-field). */
+  @IsOptional()
+  @IsIn(PROVIDER_IDS)
+  providerId?: UserProviderId;
 
   @IsOptional()
   @IsBoolean()

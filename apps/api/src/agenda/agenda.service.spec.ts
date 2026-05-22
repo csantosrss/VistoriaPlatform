@@ -19,6 +19,7 @@ function vistoriadorFixture(overrides: Partial<Record<string, unknown>> = {}) {
     id: VISTORIADOR_ID,
     roles: [Role.VISTORIADOR],
     active: true,
+    providerId: "interno",
     ...overrides,
   };
 }

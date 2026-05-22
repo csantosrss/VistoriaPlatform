@@ -5,7 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { Prisma, type User as UserModel } from "@prisma/client";
+import { Prisma, Role, type User as UserModel } from "@prisma/client";
 import * as bcrypt from "bcryptjs";
 import type {
   ListUsersResponse,
@@ -27,9 +27,21 @@ function toDto(u: UserModel): UserDto {
     name: u.name,
     roles: u.roles,
     active: u.active,
+    providerId: (u.providerId ?? null) as UserDto["providerId"],
     createdAt: u.createdAt.toISOString(),
     updatedAt: u.updatedAt.toISOString(),
   };
+}
+
+function assertProviderIdRequiredForVistoriador(
+  roles: Role[],
+  providerId: string | undefined | null,
+): void {
+  if (roles.includes(Role.VISTORIADOR) && !providerId) {
+    throw new BadRequestException(
+      "`providerId` é obrigatório quando `roles` inclui VISTORIADOR.",
+    );
+  }
 }
 
 @Injectable()
@@ -40,6 +52,7 @@ export class UsersService {
     actor: AuthenticatedUser,
     input: CreateUserDto,
   ): Promise<UserDto> {
+    assertProviderIdRequiredForVistoriador(input.roles, input.providerId);
     const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
     const result = await this.prisma.$transaction(async (tx) => {
       const existing = await tx.user.findFirst({
@@ -58,6 +71,9 @@ export class UsersService {
           name: input.name,
           passwordHash,
           roles: input.roles,
+          providerId: input.roles.includes(Role.VISTORIADOR)
+            ? (input.providerId ?? null)
+            : null,
           active: input.active ?? true,
         },
       });
@@ -72,6 +88,7 @@ export class UsersService {
             email: user.email,
             name: user.name,
             roles: user.roles,
+            providerId: user.providerId,
             active: user.active,
           } as Prisma.InputJsonValue,
         },
@@ -89,6 +106,7 @@ export class UsersService {
       tenantId: actor.tenantId,
       ...(query.role ? { roles: { has: query.role } } : {}),
       ...(typeof query.active === "boolean" ? { active: query.active } : {}),
+      ...(query.providerId ? { providerId: query.providerId } : {}),
       ...(query.q
         ? {
             OR: [
@@ -134,7 +152,8 @@ export class UsersService {
       !input.name &&
       !input.password &&
       !input.roles &&
-      input.active === undefined
+      input.active === undefined &&
+      input.providerId === undefined
     ) {
       throw new BadRequestException("Nenhum campo informado para atualização.");
     }
@@ -145,10 +164,30 @@ export class UsersService {
       if (!current) {
         throw new NotFoundException("Usuário não encontrado.");
       }
+      // Calcula roles/providerId finais e valida invariante: se VISTORIADOR
+      // continua nas roles, providerId precisa estar set.
+      const finalRoles = input.roles ?? current.roles;
+      const finalProviderId =
+        input.providerId !== undefined ? input.providerId : current.providerId;
+      assertProviderIdRequiredForVistoriador(finalRoles, finalProviderId);
+
       const data: Prisma.UserUpdateInput = {};
       if (input.name !== undefined) data.name = input.name;
       if (input.roles !== undefined) data.roles = input.roles;
       if (input.active !== undefined) data.active = input.active;
+      // providerId só faz sentido para VISTORIADOR — limpa se a role
+      // final tira o VISTORIADOR; respeita input quando válido.
+      if (input.providerId !== undefined) {
+        data.providerId = finalRoles.includes(Role.VISTORIADOR)
+          ? (input.providerId ?? null)
+          : null;
+      } else if (
+        input.roles !== undefined &&
+        !input.roles.includes(Role.VISTORIADOR) &&
+        current.providerId
+      ) {
+        data.providerId = null;
+      }
       if (input.password !== undefined) {
         data.passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
       }
@@ -163,12 +202,14 @@ export class UsersService {
           before: {
             name: current.name,
             roles: current.roles,
+            providerId: current.providerId,
             active: current.active,
             passwordChanged: input.password !== undefined,
           } as Prisma.InputJsonValue,
           after: {
             name: updated.name,
             roles: updated.roles,
+            providerId: updated.providerId,
             active: updated.active,
           } as Prisma.InputJsonValue,
         },

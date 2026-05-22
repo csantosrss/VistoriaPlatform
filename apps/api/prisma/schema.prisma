@@ -25,6 +25,7 @@ model Tenant {
   auditLogs    AuditLog[]
   vistorias    Vistoria[]
   agendaSlots  AgendaSlot[]
+  coberturas   VistoriadorCobertura[]
 
   @@map("tenants")
 }
@@ -45,6 +46,12 @@ model User {
   passwordHash String?
   roles        Role[]   @default([])
   active       Boolean  @default(true)
+  /// ProviderId do vistoriador: `interno`, `rede-vistorias` ou `conceitual`.
+  /// Sprint 22 BE — obrigatório quando `roles` inclui VISTORIADOR (validado
+  /// no service). Nullable no DB para preservar users criados antes da
+  /// migration; backfill manual via `PATCH /users/:id` quando o user passar
+  /// a precisar de agenda/cobertura.
+  providerId   String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -52,9 +59,11 @@ model User {
   auditLogs    AuditLog[]
   vistoriasAtribuidas Vistoria[] @relation("VistoriadorAtribuido")
   agendaSlots         AgendaSlot[] @relation("VistoriadorAgenda")
+  coberturas          VistoriadorCobertura[] @relation("VistoriadorCobertura")
 
   @@unique([tenantId, email])
   @@index([tenantId])
+  @@index([tenantId, providerId])
   @@map("users")
 }
 
@@ -103,6 +112,13 @@ model Vistoria {
   status   StatusVistoria @default(SOLICITADA)
   tipo     TipoVistoria
 
+  /// Identificador do imóvel no sistema externo (ERP imobiliário,
+  /// Salesforce etc.). Obrigatório no DTO de criação desde Sprint 22;
+  /// nullable no DB para preservar vistorias criadas antes da migration.
+  /// Indexado por `(tenantId, codigoImovelExterno)` para busca rápida —
+  /// múltiplas vistorias por código é esperado (entrada + saída + ...).
+  codigoImovelExterno String?
+
   enderecoLogradouro  String
   enderecoNumero      String
   enderecoComplemento String?
@@ -134,6 +150,7 @@ model Vistoria {
   @@index([tenantId, status])
   @@index([tenantId, createdAt])
   @@index([tenantId, vistoriadorId])
+  @@index([tenantId, codigoImovelExterno])
   @@map("vistorias")
 }
 
@@ -176,4 +193,36 @@ model AgendaSlot {
   @@index([tenantId, vistoriadorId, inicio])
   @@index([tenantId, inicio, fim])
   @@map("agenda_slots")
+}
+
+/// Área geográfica em que o vistoriador atende. Sprint 22 BE.
+///
+/// Hierarquia:
+///   (uf, null, null)         → cobre toda a UF
+///   (uf, cidade, null)       → cobre toda a cidade (qualquer bairro)
+///   (uf, cidade, bairro)     → cobre só o bairro
+///
+/// Múltiplas linhas por vistoriador são esperadas. Redundância é
+/// **bloqueada** pelo service com 409 — não cria `(SP, São Paulo, null)`
+/// quando já existe `(SP, null, null)` (ou vice-versa).
+///
+/// Routing não consulta esta tabela nesta sprint. Integração com
+/// `ProviderRoutingService` (provider+UF) e seleção por vistoriador
+/// específico fica para sprint futura.
+model VistoriadorCobertura {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @db.Uuid
+  vistoriadorId String   @db.Uuid
+  uf            String   @db.VarChar(2)
+  cidade        String?
+  bairro        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant      Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vistoriador User   @relation("VistoriadorCobertura", fields: [vistoriadorId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, vistoriadorId])
+  @@index([tenantId, uf, cidade, bairro])
+  @@map("vistoriador_cobertura")
 }

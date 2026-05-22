@@ -13,6 +13,11 @@ export class CreateVistoriaDto {
   @IsEnum(TipoVistoria)
   tipo!: TipoVistoria;
 
+  /** Sprint 22 BE — obrigatório. Código do imóvel no sistema externo (ERP). */
+  @IsString()
+  @Length(1, 100)
+  codigoImovelExterno!: string;
+
   @IsString()
   @Length(1, 200)
   enderecoLogradouro!: string;
