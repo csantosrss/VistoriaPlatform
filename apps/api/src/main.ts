@@ -1,4 +1,5 @@
 import "reflect-metadata";
+
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe, VersioningType } from "@nestjs/common";
 import { Logger as PinoNestLogger, PinoLogger } from "nestjs-pino";
@@ -18,7 +19,7 @@ async function bootstrap(): Promise<void> {
   app.use(compression());
 
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: "1" });
-  app.setGlobalPrefix("api", { exclude: ["health"] });
+  app.setGlobalPrefix("api", { exclude: ["health", "metrics"] });
 
   app.useGlobalPipes(
     new ValidationPipe({

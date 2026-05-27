@@ -1,5 +1,9 @@
 import { Test } from "@nestjs/testing";
-import { BadRequestException, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from "@nestjs/common";
 import { Role } from "@prisma/client";
 import { AgendaService } from "./agenda.service";
 import { PrismaService } from "../infrastructure/prisma/prisma.service";
@@ -46,9 +50,12 @@ describe("AgendaService", () => {
     user: { findFirst: jest.fn() },
     agendaSlot: {
       findFirst: jest.fn(),
+      findMany: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
       delete: jest.fn(),
+      deleteMany: jest.fn(),
     },
     auditLog: { create: jest.fn() },
   };
@@ -226,6 +233,188 @@ describe("AgendaService", () => {
       await expect(
         service.remove(actor, VISTORIADOR_ID, "missing"),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe("RBAC vistoriador (Sprint 27)", () => {
+    const vistoriadorActor: AuthenticatedUser = {
+      id: VISTORIADOR_ID,
+      tenantId: actor.tenantId,
+      email: "vistoriador@example.com",
+      roles: [Role.VISTORIADOR],
+    };
+
+    it("permite VISTORIADOR listar a própria agenda", async () => {
+      prismaMock.user.findFirst.mockResolvedValueOnce(vistoriadorFixture());
+      prismaMock.agendaSlot.findMany.mockResolvedValueOnce([]);
+      await expect(
+        service.list(vistoriadorActor, VISTORIADOR_ID, {}),
+      ).resolves.toEqual({ data: [] });
+    });
+
+    it("bloqueia VISTORIADOR acessando agenda alheia", async () => {
+      const outroId = "00000000-0000-4000-8000-0000000000aa";
+      await expect(
+        service.list(vistoriadorActor, outroId, {}),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      // Não deveria tocar Prisma — falha antes.
+      expect(prismaMock.user.findFirst).not.toHaveBeenCalled();
+    });
+
+    it("ADMIN/GESTOR seguem irrestritos", async () => {
+      prismaMock.user.findFirst.mockResolvedValueOnce(vistoriadorFixture());
+      prismaMock.agendaSlot.findMany.mockResolvedValueOnce([]);
+      await expect(service.list(actor, VISTORIADOR_ID, {})).resolves.toEqual({
+        data: [],
+      });
+    });
+
+    it("VISTORIADOR com role ADMIN extra também é irrestrito", async () => {
+      const dual: AuthenticatedUser = {
+        ...vistoriadorActor,
+        roles: [Role.VISTORIADOR, Role.ADMIN],
+      };
+      const outroId = "00000000-0000-4000-8000-0000000000bb";
+      prismaMock.user.findFirst.mockResolvedValueOnce(vistoriadorFixture());
+      prismaMock.agendaSlot.findMany.mockResolvedValueOnce([]);
+      await expect(service.list(dual, outroId, {})).resolves.toEqual({
+        data: [],
+      });
+    });
+  });
+
+  describe("bulkBlock", () => {
+    const input = {
+      from: "2026-06-01T00:00:00.000Z",
+      to: "2026-06-30T23:59:59.000Z",
+      motivo: "Férias",
+    };
+
+    it("bloqueia em transação só os slots disponíveis no intervalo", async () => {
+      prismaMock.user.findFirst.mockResolvedValueOnce(vistoriadorFixture());
+      tx.agendaSlot.findMany.mockResolvedValueOnce([
+        { id: "s-1", disponivel: true },
+        { id: "s-2", disponivel: true },
+        { id: "s-3", disponivel: false },
+      ]);
+      tx.agendaSlot.updateMany.mockResolvedValueOnce({ count: 2 });
+
+      const result = await service.bulkBlock(actor, VISTORIADOR_ID, input);
+
+      expect(result.affectedCount).toBe(2);
+      expect(result.ids).toEqual(["s-1", "s-2"]);
+      expect(result.excluded).toEqual([
+        { id: "s-3", reason: "already-blocked" },
+      ]);
+      expect(tx.agendaSlot.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: { in: ["s-1", "s-2"] },
+          tenantId: actor.tenantId,
+        },
+        data: { disponivel: false, motivo: "Férias" },
+      });
+      expect(tx.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ action: "AGENDA.BULK_BLOCKED" }),
+      });
+    });
+
+    it("affectedCount=0 quando nenhum slot livre cai no intervalo", async () => {
+      prismaMock.user.findFirst.mockResolvedValueOnce(vistoriadorFixture());
+      tx.agendaSlot.findMany.mockResolvedValueOnce([]);
+      const result = await service.bulkBlock(actor, VISTORIADOR_ID, input);
+      expect(result.affectedCount).toBe(0);
+      expect(result.ids).toEqual([]);
+      expect(tx.agendaSlot.updateMany).not.toHaveBeenCalled();
+    });
+
+    it("rejeita to <= from", async () => {
+      prismaMock.user.findFirst.mockResolvedValueOnce(vistoriadorFixture());
+      await expect(
+        service.bulkBlock(actor, VISTORIADOR_ID, {
+          from: "2026-06-30T00:00:00.000Z",
+          to: "2026-06-01T00:00:00.000Z",
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it("403 quando VISTORIADOR tenta bloquear agenda alheia", async () => {
+      const vistoriadorActor: AuthenticatedUser = {
+        id: VISTORIADOR_ID,
+        tenantId: actor.tenantId,
+        email: "v@example.com",
+        roles: [Role.VISTORIADOR],
+      };
+      const outro = "00000000-0000-4000-8000-0000000000cc";
+      await expect(
+        service.bulkBlock(vistoriadorActor, outro, input),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+  });
+
+  describe("bulkUpdate", () => {
+    it("aplica patch só nos IDs que pertencem ao tenant+vistoriador", async () => {
+      prismaMock.user.findFirst.mockResolvedValueOnce(vistoriadorFixture());
+      tx.agendaSlot.findMany.mockResolvedValueOnce([
+        { id: "s-1" },
+        { id: "s-2" },
+      ]);
+      tx.agendaSlot.updateMany.mockResolvedValueOnce({ count: 2 });
+
+      const result = await service.bulkUpdate(actor, VISTORIADOR_ID, {
+        ids: ["s-1", "s-2", "s-fora"],
+        disponivel: true,
+        motivo: null,
+      });
+
+      expect(result.affectedCount).toBe(2);
+      expect(result.ids.sort()).toEqual(["s-1", "s-2"]);
+      expect(result.excluded).toEqual([{ id: "s-fora", reason: "not-found" }]);
+      expect(tx.agendaSlot.updateMany).toHaveBeenCalledWith({
+        where: { id: { in: expect.arrayContaining(["s-1", "s-2"]) } },
+        data: { disponivel: true, motivo: null },
+      });
+      expect(tx.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ action: "AGENDA.BULK_UPDATED" }),
+      });
+    });
+
+    it("rejeita quando nem disponivel nem motivo são informados", async () => {
+      prismaMock.user.findFirst.mockResolvedValueOnce(vistoriadorFixture());
+      await expect(
+        service.bulkUpdate(actor, VISTORIADOR_ID, { ids: ["s-1"] }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  describe("bulkDelete", () => {
+    it("remove só os IDs que pertencem ao tenant+vistoriador", async () => {
+      prismaMock.user.findFirst.mockResolvedValueOnce(vistoriadorFixture());
+      tx.agendaSlot.findMany.mockResolvedValueOnce([{ id: "s-1" }]);
+      tx.agendaSlot.deleteMany.mockResolvedValueOnce({ count: 1 });
+
+      const result = await service.bulkDelete(actor, VISTORIADOR_ID, {
+        ids: ["s-1", "s-fora"],
+      });
+
+      expect(result.affectedCount).toBe(1);
+      expect(result.ids).toEqual(["s-1"]);
+      expect(result.excluded).toEqual([{ id: "s-fora", reason: "not-found" }]);
+      expect(tx.agendaSlot.deleteMany).toHaveBeenCalledWith({
+        where: { id: { in: ["s-1"] } },
+      });
+      expect(tx.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ action: "AGENDA.BULK_DELETED" }),
+      });
+    });
+
+    it("affectedCount=0 quando nenhum ID bate", async () => {
+      prismaMock.user.findFirst.mockResolvedValueOnce(vistoriadorFixture());
+      tx.agendaSlot.findMany.mockResolvedValueOnce([]);
+      const result = await service.bulkDelete(actor, VISTORIADOR_ID, {
+        ids: ["s-x"],
+      });
+      expect(result.affectedCount).toBe(0);
+      expect(tx.agendaSlot.deleteMany).not.toHaveBeenCalled();
     });
   });
 });

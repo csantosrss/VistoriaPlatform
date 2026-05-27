@@ -87,3 +87,58 @@ export const ListAgendaSlotsResponseSchema = z.object({
 export type ListAgendaSlotsResponse = z.infer<
   typeof ListAgendaSlotsResponseSchema
 >;
+
+/**
+ * Bulk endpoints (Sprint 27 BE). Servem ao FE de calendário (Sprint 29) que
+ * precisa bloquear/liberar/remover muitos slots de uma vez sem disparar N
+ * round-trips. Todos rodam em Prisma `$transaction` — se um slot falhar, o
+ * lote inteiro faz rollback.
+ *
+ *  - `POST   /api/v1/vistoriadores/:id/agenda:bulk-block`
+ *  - `POST   /api/v1/vistoriadores/:id/agenda:bulk-update`
+ *  - `DELETE /api/v1/vistoriadores/:id/agenda:bulk-delete`
+ */
+
+export const BulkBlockRequestSchema = z
+  .object({
+    from: z.string().datetime(),
+    to: z.string().datetime(),
+    motivo: z.string().max(500).optional(),
+  })
+  .refine((s) => new Date(s.to) > new Date(s.from), {
+    message: "`to` deve ser maior que `from`",
+    path: ["to"],
+  });
+export type BulkBlockRequest = z.infer<typeof BulkBlockRequestSchema>;
+
+export const BulkUpdateRequestSchema = z
+  .object({
+    ids: z.array(z.string().uuid()).min(1).max(200),
+    disponivel: z.boolean().optional(),
+    motivo: z.string().max(500).nullable().optional(),
+  })
+  .refine(
+    (input) => input.disponivel !== undefined || input.motivo !== undefined,
+    {
+      message: "Informe ao menos `disponivel` ou `motivo`",
+      path: ["disponivel"],
+    },
+  );
+export type BulkUpdateRequest = z.infer<typeof BulkUpdateRequestSchema>;
+
+export const BulkDeleteRequestSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(200),
+});
+export type BulkDeleteRequest = z.infer<typeof BulkDeleteRequestSchema>;
+
+export const BulkOpResponseSchema = z.object({
+  affectedCount: z.number().int().nonnegative(),
+  ids: z.array(z.string().uuid()),
+  /** Slots solicitados que não entraram na operação (não existiam, fora do
+   * tenant, ou — no caso de `:bulk-block` — slots já bloqueados ou que cruzam
+   * o limite do intervalo). */
+  excluded: z
+    .array(z.object({ id: z.string().uuid(), reason: z.string() }))
+    .optional(),
+});
+export type BulkOpResponse = z.infer<typeof BulkOpResponseSchema>;

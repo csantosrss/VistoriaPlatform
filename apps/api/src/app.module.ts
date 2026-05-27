@@ -16,8 +16,10 @@ import { VistoriasModule } from "./vistorias/vistorias.module";
 import { UsersModule } from "./users/users.module";
 import { AgendaModule } from "./agenda/agenda.module";
 import { CoberturaModule } from "./cobertura/cobertura.module";
+import { MetricsModule } from "./metrics/metrics.module";
 import { PrismaModule } from "./infrastructure/prisma/prisma.module";
 import { MessagingModule } from "./infrastructure/messaging/messaging.module";
+import { VistoriaReaderAdapter } from "./vistorias/vistoria-reader.adapter";
 import { IntegrationsModule } from "@vistoria/integrations";
 
 @Module({
@@ -41,7 +43,11 @@ import { IntegrationsModule } from "@vistoria/integrations";
     UsersModule,
     AgendaModule,
     CoberturaModule,
-    IntegrationsModule.forRoot(),
+    MetricsModule,
+    // Sprint 28 IN: passa o adapter BE da `VistoriaReaderPort` para que o
+    // `InternoProvider.consultar()` consiga ler estado via Prisma sem que
+    // o package `integrations` importe do domínio do BE.
+    IntegrationsModule.forRoot({ vistoriaReader: VistoriaReaderAdapter }),
   ],
 })
 export class AppModule implements NestModule {
