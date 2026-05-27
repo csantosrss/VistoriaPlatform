@@ -27,6 +27,7 @@ flowchart LR
         redis[("Redis 7<br/>:6379")]
         rmq{{"RabbitMQ 3.13<br/>:5672 / mgmt :15672"}}
         mh["MailHog<br/>:1025 / UI :8025"]
+        prom["Prometheus 2.55<br/>:9090"]
     end
 
     web -- "REST JSON + JWT<br/>(auth, vistorias, audit, stats, transicoes, refresh)" --> api
@@ -82,6 +83,7 @@ flowchart LR
 - IN lê Vistoria via `VistoriaReaderPort` (BE adapter, simétrico ao writer) ([ADR-017](../decisions/ADR-017-vistoria-reader-port.md))
 - `IntegrationsModule.forRoot(options)` aceita adapters opcionais ([ADR-018](../decisions/ADR-018-integrations-module-options.md))
 - `/metrics` Prometheus sem auth (network policy) ([ADR-016](../decisions/ADR-016-metrics-endpoint-no-auth.md))
+- Nominatim (OSM) para autocomplete de bairros ([ADR-019](../decisions/ADR-019-nominatim-bairros.md))
 - Build do monorepo: Turborepo ([ADR-002](../decisions/ADR-002-turborepo-vs-nx.md))
 
 ## Observações operacionais
