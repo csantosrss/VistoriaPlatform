@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/select";
 import { useCreateCobertura } from "../hooks/use-create-cobertura";
 import { useIbgeMunicipios } from "../hooks/use-ibge-municipios";
 import { useIbgeUfs } from "../hooks/use-ibge-ufs";
+import { useNominatimBairros } from "../hooks/use-nominatim-bairros";
 
 /**
  * Form para adicionar uma área de cobertura do vistoriador.
@@ -18,7 +19,9 @@ import { useIbgeUfs } from "../hooks/use-ibge-ufs";
  *  - Cidade: combobox via `<input list="...">` com municípios da UF
  *    selecionada (Tanstack Query staleTime 24h). Bairro só habilita
  *    quando cidade preenchida.
- *  - Bairro: input livre (IBGE não cobre bairros).
+ *  - Bairro: input com datalist preenchido por Nominatim (S35 FE).
+ *    Debounce 350ms; cache 1h por (uf, cidade, prefix); fallback gracioso
+ *    para input livre se Nominatim falhar.
  *  - Mensagem clara em 409 (mostra qual regra existente bloqueia).
  */
 export function AddCoberturaForm({ userId }: { userId: string }) {
@@ -27,6 +30,7 @@ export function AddCoberturaForm({ userId }: { userId: string }) {
   const [cidade, setCidade] = useState("");
   const [bairro, setBairro] = useState("");
   const municipiosQuery = useIbgeMunicipios(uf);
+  const bairrosQuery = useNominatimBairros(bairro, cidade, uf);
   const mut = useCreateCobertura(userId);
 
   const reset = () => {
@@ -116,6 +120,7 @@ export function AddCoberturaForm({ userId }: { userId: string }) {
         <Label htmlFor="bairro">Bairro (opcional)</Label>
         <Input
           id="bairro"
+          list="bairros-list"
           value={bairro}
           disabled={!cidade}
           onChange={(e) => setBairro(e.target.value)}
@@ -123,6 +128,15 @@ export function AddCoberturaForm({ userId }: { userId: string }) {
             cidade ? "Bairro específico..." : "Selecione a cidade primeiro"
           }
         />
+        <datalist id="bairros-list">
+          {(bairrosQuery.data ?? []).map((b) => (
+            <option key={b} value={b} />
+          ))}
+        </datalist>
+        <p className="text-xs text-muted-foreground">
+          Sugestões via OpenStreetMap (Nominatim). Pode digitar livre se o
+          bairro não aparecer.
+        </p>
       </div>
 
       {errorMessage && (
