@@ -39,6 +39,9 @@ Histórico de sprints da Plataforma de Vistorias. Cada sprint produz um arquivo 
 | [SPRINT-31](./SPRINT-31.md) | Bug `/metrics` detectado + spec E2E (ciclo corretivo abreviado)          | QI     | 2026-05-27 |
 | [SPRINT-32](./SPRINT-32.md) | `VERSION_NEUTRAL` no `MetricsController` — `/metrics` corrigido          | BE     | 2026-05-27 |
 | [SPRINT-33](./SPRINT-33.md) | Consolidação do ciclo corretivo (IN/FE no-op formal; ADR-016 atualizada) | DOC    | 2026-05-27 |
+| [SPRINT-34](./SPRINT-34.md) | Autocomplete de bairros — doc Nominatim + critérios (ciclo abreviado)    | QI     | 2026-05-27 |
+| [SPRINT-35](./SPRINT-35.md) | `lib/nominatim.ts` + hook + datalist no `AddCoberturaForm`               | FE     | 2026-05-27 |
+| [SPRINT-36](./SPRINT-36.md) | Consolidação ciclo abreviado bairros (ADR-019 + C4 + README)             | DOC    | 2026-05-27 |
 
 ## Convenções
 
