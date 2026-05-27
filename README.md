@@ -67,14 +67,16 @@ Credenciais de dev (seed idempotente — `pnpm --filter @vistoria/api prisma:see
 
 ## URLs locais
 
-| URL                             | O que é                                                          |
-| ------------------------------- | ---------------------------------------------------------------- |
-| http://localhost:5173           | Painel admin React (`apps/web`)                                  |
-| http://localhost:3000/api/docs  | Swagger interativo do `apps/api`                                 |
-| http://localhost:3000/v1/health | Health check (terminus — Postgres, Redis, RabbitMQ)              |
-| http://localhost:15672          | RabbitMQ Management (`vistoria` / `vistoria`)                    |
-| http://localhost:8025           | MailHog UI (caixa de entrada SMTP do dev)                        |
-| http://localhost:5555           | Prisma Studio (rode `pnpm --filter @vistoria/api prisma:studio`) |
+| URL                             | O que é                                                                                                                   |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| http://localhost:5173           | Painel admin React (`apps/web`)                                                                                           |
+| http://localhost:3000/api/docs  | Swagger interativo do `apps/api`                                                                                          |
+| http://localhost:3000/v1/health | Health check (terminus — Postgres, Redis, RabbitMQ)                                                                       |
+| http://localhost:3000/metrics   | Métricas Prometheus (S27 — sem auth na rede interna; ver [ADR-016](./docs/decisions/ADR-016-metrics-endpoint-no-auth.md)) |
+| http://localhost:9090           | Prometheus UI (S26 — scrape de `/metrics` da API a cada 15s)                                                              |
+| http://localhost:15672          | RabbitMQ Management (`vistoria` / `vistoria`)                                                                             |
+| http://localhost:8025           | MailHog UI (caixa de entrada SMTP do dev)                                                                                 |
+| http://localhost:5555           | Prisma Studio (rode `pnpm --filter @vistoria/api prisma:studio`)                                                          |
 
 Conexões TCP: Postgres `localhost:5433` (5433 e não 5432 para coexistir com Postgres nativo Windows), Redis `:6379`, RabbitMQ AMQP `:5672`, MailHog SMTP `:1025`.
 
@@ -82,49 +84,54 @@ Conexões TCP: Postgres `localhost:5433` (5433 e não 5432 para coexistir com Po
 
 Após `pnpm dev:all`, o painel responde em http://localhost:5173 e cobre o fluxo ponta-a-ponta da SAGA. Telas funcionais:
 
-| Rota                        | O que faz                                                                                                     |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `/login`                    | Login real contra `POST /api/v1/auth/login` — par access + refresh; refresh transparente no `apiClient` (S14) |
-| `/`                         | Dashboard com 4 KPIs vivos via `GET /vistorias/stats` (Solicitadas / Roteadas / Em execução / Concluídas)     |
-| `/vistorias`                | Lista paginada (20/pág) com filtros por status e tipo                                                         |
-| `/vistorias/novo`           | Criação de Vistoria — entra direto em `ROTEADA` (routing inline com `providerId` desde S12)                   |
-| `/vistorias/:id`            | Detalhe completo + **timeline da SAGA** (S14) + cancelamento condicionado aos estados pré-execução            |
-| `/audit`                    | Audit log filtrável — inclui `VISTORIA.STATUS_CHANGED` desde S12 (BE consome eventos do IN via RMQ)           |
-| `/users`                    | Lista, criação e edição de usuários (S19); soft-delete; atalho de agenda para role VISTORIADOR                |
-| `/vistoriadores/:id/agenda` | Cadastro e gestão da agenda do vistoriador (slots libera/bloqueio com motivo) (S19)                           |
-| `/health`                   | Status dos componentes do `apps/api` (Postgres, Redis, RabbitMQ)                                              |
+| Rota                        | O que faz                                                                                                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/login`                    | Login real contra `POST /api/v1/auth/login` — par access + refresh; refresh transparente no `apiClient` (S14)                                                                                        |
+| `/`                         | Dashboard com 4 KPIs vivos via `GET /vistorias/stats` (Solicitadas / Roteadas / Em execução / Concluídas)                                                                                            |
+| `/vistorias`                | Lista paginada (20/pág) com filtros por status, tipo e `codigoImovelExterno` (S24)                                                                                                                   |
+| `/vistorias/novo`           | Criação de Vistoria — entra direto em `ROTEADA` (routing inline com `providerId` desde S12)                                                                                                          |
+| `/vistorias/:id`            | Detalhe completo + **timeline da SAGA** (S14) + cancelamento condicionado aos estados pré-execução                                                                                                   |
+| `/audit`                    | Audit log filtrável — inclui `VISTORIA.STATUS_CHANGED` desde S12 (BE consome eventos do IN via RMQ)                                                                                                  |
+| `/users`                    | Lista, criação e edição de usuários (S19); soft-delete; **card de cobertura geográfica** com autocomplete IBGE (S24)                                                                                 |
+| `/agenda`                   | **Calendário mensal da agenda (S29)** — ADMIN/GESTOR escolhe vistoriador via dropdown; **VISTORIADOR puro vê a própria agenda** (RBAC do BE S27); drawer lateral, bloqueio em lote por período, KPIs |
+| `/vistoriadores/:id/agenda` | Deep-link da lista de usuários para a mesma `AgendaPage` com vistoriador pré-selecionado                                                                                                             |
+| `/health`                   | Status dos componentes do `apps/api` (Postgres, Redis, RabbitMQ)                                                                                                                                     |
 
 ## Endpoints REST (apps/api)
 
-Documentação interativa em http://localhost:3000/api/docs. Conjunto vivo após o quinto ciclo:
+Documentação interativa em http://localhost:3000/api/docs. Conjunto vivo após o sexto ciclo:
 
-| Método | Rota                                           | Auth               | Entrou em |
-| ------ | ---------------------------------------------- | ------------------ | --------- |
-| POST   | `/api/v1/auth/login`                           | público            | S07       |
-| POST   | `/api/v1/auth/refresh`                         | refresh próprio    | S12       |
-| GET    | `/api/v1/auth/me`                              | JWT                | S07       |
-| GET    | `/api/v1/vistorias`                            | JWT                | S07       |
-| GET    | `/api/v1/vistorias/stats`                      | JWT                | S12       |
-| GET    | `/api/v1/vistorias/:id`                        | JWT                | S07       |
-| GET    | `/api/v1/vistorias/:id/transicoes`             | JWT                | S12       |
-| POST   | `/api/v1/vistorias`                            | JWT                | S07       |
-| POST   | `/api/v1/vistorias/:id/cancelar`               | JWT                | S07       |
-| GET    | `/api/v1/users`                                | JWT (ADMIN/GESTOR) | S17       |
-| POST   | `/api/v1/users`                                | JWT (ADMIN/GESTOR) | S17       |
-| GET    | `/api/v1/users/:id`                            | JWT (ADMIN/GESTOR) | S17       |
-| PATCH  | `/api/v1/users/:id`                            | JWT (ADMIN/GESTOR) | S17       |
-| DELETE | `/api/v1/users/:id`                            | JWT (ADMIN/GESTOR) | S17       |
-| GET    | `/api/v1/vistoriadores/:id/agenda`             | JWT (ADMIN/GESTOR) | S17       |
-| POST   | `/api/v1/vistoriadores/:id/agenda`             | JWT (ADMIN/GESTOR) | S17       |
-| PATCH  | `/api/v1/vistoriadores/:id/agenda/:slotId`     | JWT (ADMIN/GESTOR) | S17       |
-| DELETE | `/api/v1/vistoriadores/:id/agenda/:slotId`     | JWT (ADMIN/GESTOR) | S17       |
-| GET    | `/api/v1/users/:id/cobertura`                  | JWT (ADMIN/GESTOR) | S22       |
-| POST   | `/api/v1/users/:id/cobertura`                  | JWT (ADMIN/GESTOR) | S22       |
-| DELETE | `/api/v1/users/:id/cobertura/:coberturaId`     | JWT (ADMIN/GESTOR) | S22       |
-| GET    | `/api/v1/audit-logs`                           | JWT (ADMIN/GESTOR) | S07       |
-| POST   | `/api/v1/integrations/webhooks/rede-vistorias` | HMAC público       | S03/S08   |
-| POST   | `/api/v1/integrations/webhooks/conceitual`     | HMAC público       | S03/S08   |
-| GET    | `/v1/health`                                   | público            | S02       |
+| Método | Rota                                           | Auth                                                                                      | Entrou em |
+| ------ | ---------------------------------------------- | ----------------------------------------------------------------------------------------- | --------- |
+| POST   | `/api/v1/auth/login`                           | público                                                                                   | S07       |
+| POST   | `/api/v1/auth/refresh`                         | refresh próprio                                                                           | S12       |
+| GET    | `/api/v1/auth/me`                              | JWT                                                                                       | S07       |
+| GET    | `/api/v1/vistorias`                            | JWT                                                                                       | S07       |
+| GET    | `/api/v1/vistorias/stats`                      | JWT                                                                                       | S12       |
+| GET    | `/api/v1/vistorias/:id`                        | JWT                                                                                       | S07       |
+| GET    | `/api/v1/vistorias/:id/transicoes`             | JWT                                                                                       | S12       |
+| POST   | `/api/v1/vistorias`                            | JWT                                                                                       | S07       |
+| POST   | `/api/v1/vistorias/:id/cancelar`               | JWT                                                                                       | S07       |
+| GET    | `/api/v1/users`                                | JWT (ADMIN/GESTOR)                                                                        | S17       |
+| POST   | `/api/v1/users`                                | JWT (ADMIN/GESTOR)                                                                        | S17       |
+| GET    | `/api/v1/users/:id`                            | JWT (ADMIN/GESTOR)                                                                        | S17       |
+| PATCH  | `/api/v1/users/:id`                            | JWT (ADMIN/GESTOR)                                                                        | S17       |
+| DELETE | `/api/v1/users/:id`                            | JWT (ADMIN/GESTOR)                                                                        | S17       |
+| GET    | `/api/v1/vistoriadores/:id/agenda`             | JWT (ADMIN/GESTOR + **VISTORIADOR na própria** S27)                                       | S17       |
+| POST   | `/api/v1/vistoriadores/:id/agenda`             | idem RBAC                                                                                 | S17       |
+| PATCH  | `/api/v1/vistoriadores/:id/agenda/:slotId`     | idem RBAC                                                                                 | S17       |
+| DELETE | `/api/v1/vistoriadores/:id/agenda/:slotId`     | idem RBAC                                                                                 | S17       |
+| POST   | `/api/v1/vistoriadores/:id/agenda:bulk-block`  | idem RBAC                                                                                 | **S27**   |
+| POST   | `/api/v1/vistoriadores/:id/agenda:bulk-update` | idem RBAC                                                                                 | **S27**   |
+| DELETE | `/api/v1/vistoriadores/:id/agenda:bulk-delete` | idem RBAC                                                                                 | **S27**   |
+| GET    | `/api/v1/users/:id/cobertura`                  | JWT (ADMIN/GESTOR)                                                                        | S22       |
+| POST   | `/api/v1/users/:id/cobertura`                  | JWT (ADMIN/GESTOR)                                                                        | S22       |
+| DELETE | `/api/v1/users/:id/cobertura/:coberturaId`     | JWT (ADMIN/GESTOR)                                                                        | S22       |
+| GET    | `/api/v1/audit-logs`                           | JWT (ADMIN/GESTOR)                                                                        | S07       |
+| POST   | `/api/v1/integrations/webhooks/rede-vistorias` | HMAC público                                                                              | S03/S08   |
+| POST   | `/api/v1/integrations/webhooks/conceitual`     | HMAC público                                                                              | S03/S08   |
+| GET    | `/v1/health`                                   | público                                                                                   | S02       |
+| GET    | `/metrics`                                     | público em rede interna ([ADR-016](./docs/decisions/ADR-016-metrics-endpoint-no-auth.md)) | **S27**   |
 
 ## Outros comandos
 
