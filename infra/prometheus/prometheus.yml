@@ -1,0 +1,25 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    project: vistoria-platform
+    env: dev
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: vistoria-api
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["host.docker.internal:3000"]
+        labels:
+          service: api
+
+  - job_name: rabbitmq
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["rabbitmq:15692"]
+        labels:
+          service: rabbitmq

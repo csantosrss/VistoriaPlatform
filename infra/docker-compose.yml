@@ -76,10 +76,45 @@ services:
     networks:
       - vistoria-net
 
+  prometheus:
+    image: prom/prometheus:v2.55.0
+    container_name: vistoria-prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=7d"
+      - "--web.enable-lifecycle"
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    extra_hosts:
+      # Permite que prometheus alcance a API rodando no host (modo dev).
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:9090/-/healthy",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - vistoria-net
+
 volumes:
   postgres-data:
   redis-data:
   rabbitmq-data:
+  prometheus-data:
 
 networks:
   vistoria-net:
