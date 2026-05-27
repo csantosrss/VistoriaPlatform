@@ -49,7 +49,10 @@ export abstract class BaseHttpProvider implements IVistoriaProvider {
   }
 
   abstract agendar(dto: AgendamentoDto): Promise<AgendamentoResult>;
-  abstract consultar(externalId: string): Promise<ConsultaResult>;
+  abstract consultar(
+    externalId: string,
+    tenantId: string,
+  ): Promise<ConsultaResult>;
   abstract cancelar(dto: CancelarDto): Promise<void>;
   abstract receberWebhook(payload: unknown): Promise<void>;
 

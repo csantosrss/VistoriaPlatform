@@ -72,7 +72,13 @@ export interface CancelarDto {
 export interface IVistoriaProvider {
   readonly providerId: ProviderId;
   agendar(dto: AgendamentoDto): Promise<AgendamentoResult>;
-  consultar(externalId: string): Promise<ConsultaResult>;
+  /**
+   * Sprint 28 IN: assinatura ganha `tenantId` para o `InternoProvider`
+   * conseguir aplicar tenant isolation via {@link VistoriaReaderPort}.
+   * Adapters HTTP de parceiros (Rede Vistorias, Conceitual) ignoram o
+   * campo — o tenant deles fica implícito nas credenciais por API key.
+   */
+  consultar(externalId: string, tenantId: string): Promise<ConsultaResult>;
   cancelar(dto: CancelarDto): Promise<void>;
   receberWebhook(payload: unknown): Promise<void>;
   healthCheck(): Promise<PartnerHealth>;

@@ -33,6 +33,8 @@ describe("ConceitualProvider.mapStatus", () => {
 describe("InternoProvider", () => {
   const update = jest.fn().mockResolvedValue(undefined);
   const writer = { update };
+  // Sprint 28 IN: provider sem reader injetado mantém compatibilidade com
+  // os cenários anteriores (consultar → NotImplementedException).
   const provider = new InternoProvider(writer);
 
   beforeEach(() => {
@@ -88,8 +90,66 @@ describe("InternoProvider", () => {
     );
   });
 
-  it("consultar() ainda é NotImplemented (port BE→IN ausente)", async () => {
-    await expect(provider.consultar("V1")).rejects.toThrow(/port BE→IN/);
+  it("consultar() sem reader injetado → NotImplementedException", async () => {
+    await expect(provider.consultar("V1", "T1")).rejects.toThrow(
+      /VistoriaReaderPort não registrada/,
+    );
+  });
+
+  it("consultar() com reader injetado → mapeia VistoriaSnapshot para ConsultaResult", async () => {
+    const read = jest.fn().mockResolvedValue({
+      vistoriaId: "V1",
+      tenantId: "T1",
+      status: "AGENDADA",
+      codigoImovelExterno: "EXT-42",
+      vistoriadorId: null,
+      agendadoPara: new Date("2026-07-01T10:00:00Z"),
+      concluidoEm: null,
+      canceladoEm: null,
+      canceladoMotivo: null,
+      observacoes: "Levar fita métrica",
+      createdAt: new Date("2026-06-01T00:00:00Z"),
+      updatedAt: new Date("2026-06-15T00:00:00Z"),
+    });
+    const withReader = new InternoProvider(writer, { read });
+
+    const result = await withReader.consultar("V1", "T1");
+
+    expect(read).toHaveBeenCalledWith("V1", "T1");
+    expect(result).toEqual({
+      externalId: "EXT-42",
+      status: "AGENDADA",
+      dataAgendada: new Date("2026-07-01T10:00:00Z"),
+      observacoes: "Levar fita métrica",
+    });
+  });
+
+  it("consultar() com reader injetado → 404 quando vistoria não existe no tenant", async () => {
+    const read = jest.fn().mockResolvedValue(null);
+    const withReader = new InternoProvider(writer, { read });
+    await expect(withReader.consultar("V-x", "T-x")).rejects.toThrow(
+      /não encontrada no tenant/,
+    );
+  });
+
+  it("consultar() com reader injetado → fallback de externalId para vistoriaId quando codigoImovelExterno é null", async () => {
+    const read = jest.fn().mockResolvedValue({
+      vistoriaId: "V2",
+      tenantId: "T1",
+      status: "SOLICITADA",
+      codigoImovelExterno: null,
+      vistoriadorId: null,
+      agendadoPara: null,
+      concluidoEm: null,
+      canceladoEm: null,
+      canceladoMotivo: null,
+      observacoes: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    const withReader = new InternoProvider(writer, { read });
+    const result = await withReader.consultar("V2", "T1");
+    expect(result.externalId).toBe("V2");
   });
 
   it("webhook is a no-op", async () => {

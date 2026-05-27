@@ -2,7 +2,9 @@ import {
   Inject,
   Injectable,
   Logger,
+  NotFoundException,
   NotImplementedException,
+  Optional,
 } from "@nestjs/common";
 import type {
   AgendamentoDto,
@@ -17,6 +19,10 @@ import {
   VISTORIA_STATUS_WRITER,
   type VistoriaStatusWriterPort,
 } from "../ports/vistoria-status-writer.port";
+import {
+  VISTORIA_READER,
+  type VistoriaReaderPort,
+} from "../ports/vistoria-reader.port";
 
 /**
  * Provider para a equipe interna da Auxiliadora.
@@ -27,9 +33,10 @@ import {
  * provider interno consistente com Rede Vistorias/Conceitual, sem
  * acoplar IN à camada de domínio do `apps/api`.
  *
- * `consultar()` permanece como `NotImplemented` — leitura de estado
- * de Vistoria requer uma port BE→IN que ainda não existe (pedido em
- * aberto, ver Sprint 13 IN handoff).
+ * Sprint 28 IN: `consultar(externalId, tenantId)` agora usa
+ * {@link VistoriaReaderPort} (port BE→IN). Quando o adapter não está
+ * registrado, segue caindo em {@link NotImplementedException} — forward-compat
+ * para consumidores que ainda não atualizaram o `IntegrationsModule.forRoot()`.
  */
 @Injectable()
 export class InternoProvider implements IVistoriaProvider {
@@ -39,6 +46,9 @@ export class InternoProvider implements IVistoriaProvider {
   constructor(
     @Inject(VISTORIA_STATUS_WRITER)
     private readonly statusWriter: VistoriaStatusWriterPort,
+    @Optional()
+    @Inject(VISTORIA_READER)
+    private readonly reader?: VistoriaReaderPort,
   ) {}
 
   async agendar(dto: AgendamentoDto): Promise<AgendamentoResult> {
@@ -74,10 +84,27 @@ export class InternoProvider implements IVistoriaProvider {
     };
   }
 
-  async consultar(_externalId: string): Promise<ConsultaResult> {
-    throw new NotImplementedException(
-      "InternoProvider.consultar — leitura de estado requer port BE→IN (não disponível na Sprint 13 IN).",
-    );
+  async consultar(
+    externalId: string,
+    tenantId: string,
+  ): Promise<ConsultaResult> {
+    if (!this.reader) {
+      throw new NotImplementedException(
+        "InternoProvider.consultar — VistoriaReaderPort não registrada. Registre `{ provide: VISTORIA_READER, useClass: VistoriaReaderAdapter }` no consumidor.",
+      );
+    }
+    const snap = await this.reader.read(externalId, tenantId);
+    if (!snap) {
+      throw new NotFoundException(
+        `Vistoria ${externalId} não encontrada no tenant ${tenantId}.`,
+      );
+    }
+    return {
+      externalId: snap.codigoImovelExterno ?? snap.vistoriaId,
+      status: snap.status,
+      dataAgendada: snap.agendadoPara ?? undefined,
+      observacoes: snap.observacoes ?? undefined,
+    };
   }
 
   async cancelar(dto: CancelarDto): Promise<void> {

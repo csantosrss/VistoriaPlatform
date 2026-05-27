@@ -73,7 +73,10 @@ export class ConceitualProvider extends BaseHttpProvider {
     };
   }
 
-  async consultar(externalId: string): Promise<ConsultaResult> {
+  async consultar(
+    externalId: string,
+    _tenantId: string,
+  ): Promise<ConsultaResult> {
     const res = await this.http.get(
       `/vistorias/${encodeURIComponent(externalId)}`,
     );

@@ -1,4 +1,9 @@
-import { Module, type DynamicModule } from "@nestjs/common";
+import {
+  Module,
+  type DynamicModule,
+  type Provider,
+  type Type,
+} from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ConceitualProvider } from "./providers/conceitual.provider";
 import { InternoProvider } from "./providers/interno.provider";
@@ -10,10 +15,36 @@ import { RmqSubscriber } from "./messaging/rmq-subscriber.service";
 import { RmqVistoriaStatusWriter } from "./messaging/rmq-vistoria-status-writer.service";
 import { AgendamentoOrchestrator } from "./orchestration/agendamento-orchestrator.service";
 import { VISTORIA_STATUS_WRITER } from "./ports/vistoria-status-writer.port";
+import {
+  VISTORIA_READER,
+  type VistoriaReaderPort,
+} from "./ports/vistoria-reader.port";
+
+/**
+ * Opções do `IntegrationsModule.forRoot()`.
+ *
+ * Sprint 28 IN: `vistoriaReader` aceita o `Type` do adapter BE
+ * (`apps/api/src/vistorias/vistoria-reader.adapter.ts`). Quando passado,
+ * registra o token {@link VISTORIA_READER} para que `InternoProvider.consultar()`
+ * funcione. Quando omitido, `consultar()` cai em `NotImplementedException`
+ * — preserva forward-compat para consumidores legados.
+ */
+export interface IntegrationsModuleOptions {
+  vistoriaReader?: Type<VistoriaReaderPort>;
+}
 
 @Module({})
 export class IntegrationsModule {
-  static forRoot(): DynamicModule {
+  static forRoot(options: IntegrationsModuleOptions = {}): DynamicModule {
+    const readerProviders: Provider[] = options.vistoriaReader
+      ? [
+          options.vistoriaReader,
+          {
+            provide: VISTORIA_READER,
+            useExisting: options.vistoriaReader,
+          },
+        ]
+      : [];
     return {
       module: IntegrationsModule,
       imports: [ConfigModule],
@@ -29,6 +60,7 @@ export class IntegrationsModule {
           provide: VISTORIA_STATUS_WRITER,
           useExisting: RmqVistoriaStatusWriter,
         },
+        ...readerProviders,
         {
           provide: RedeVistoriasProvider,
           inject: [ConfigService],
@@ -66,6 +98,7 @@ export class IntegrationsModule {
         AgendamentoOrchestrator,
         VISTORIA_STATUS_WRITER,
         WebhookSignatureVerifier,
+        ...(options.vistoriaReader ? [VISTORIA_READER] : []),
       ],
     };
   }
