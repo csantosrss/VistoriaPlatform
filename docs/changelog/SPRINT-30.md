@@ -144,6 +144,19 @@ Lista cumulativa repassada ao ciclo 7:
 - ~~Port BE→IN para `consultar()` do `InternoProvider`~~ → entregue
   em S28.
 
+**Bugs latentes do ciclo 6 (acertados depois)**:
+
+- `/metrics` ficou em `/v1/metrics` por causa do `defaultVersion: "1"`
+  global do `main.ts`. Detectado no primeiro `pnpm dev:all` pós-S30
+  (S31 QI), corrigido em **S32 BE** com `VERSION_NEUTRAL`. Adendo
+  em [ADR-016](../decisions/ADR-016-metrics-endpoint-no-auth.md).
+- `AgendaService.assertVistoriador` exige `providerId` para
+  **qualquer** operação (inclusive GET) — vistoriador legado sem
+  `providerId` bloqueia /agenda. Detectado no mesmo `pnpm dev:all`.
+  Workaround aplicado (PATCH em `vistoriador1.providerId = "interno"`);
+  correção definitiva (relaxar regra no `list()` + FE expor mensagem
+  do BE) fica como pedido aberto para o próximo ciclo regular.
+
 ## Pedidos abertos
 
 Repassados via [SPRINT-30-DOC.md](../handoffs/SPRINT-30-DOC.md):

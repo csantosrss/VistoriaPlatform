@@ -87,8 +87,19 @@ DOC (consolida decisão tática do BE Sprint 27)
 
 S30
 
+## Adendo Sprint 32 BE (path correto)
+
+Na primeira execução do `pnpm dev:all` pós-S30, detectou-se que o
+endpoint estava em `/v1/metrics` em vez de `/metrics`. O
+`@Controller({ path: "metrics", version: undefined })` não desligava
+o `defaultVersion: "1"` global do `main.ts` — apenas
+**`VERSION_NEUTRAL`** o faz. Correção entregue em S32 BE; path agora é
+`/metrics` puro. Esta ADR continua válida — a decisão arquitetural
+(sem auth, via network policy) não muda.
+
 ## Referências
 
 - Implementação: [`apps/api/src/metrics/`](../../apps/api/src/metrics/)
 - Scrape config: [`infra/prometheus/prometheus.yml`](../../infra/prometheus/prometheus.yml)
 - Handoff que originou: [SPRINT-27-BE.md](../handoffs/SPRINT-27-BE.md)
+- Correção de path: [SPRINT-32-BE.md](../handoffs/SPRINT-32-BE.md)

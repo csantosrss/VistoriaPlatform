@@ -36,6 +36,9 @@ Histórico de sprints da Plataforma de Vistorias. Cada sprint produz um arquivo 
 | [SPRINT-28](./SPRINT-28.md) | `VistoriaReaderPort` + `IntegrationsModule.forRoot(options)` + adapter   | IN     | 2026-05-26 |
 | [SPRINT-29](./SPRINT-29.md) | Calendário mensal da agenda + drawer + KPIs + bulk consumers + RBAC      | FE     | 2026-05-26 |
 | [SPRINT-30](./SPRINT-30.md) | Consolidação documental do sexto ciclo (changelogs 26–30, C4, 3 ADRs)    | DOC    | 2026-05-26 |
+| [SPRINT-31](./SPRINT-31.md) | Bug `/metrics` detectado + spec E2E (ciclo corretivo abreviado)          | QI     | 2026-05-27 |
+| [SPRINT-32](./SPRINT-32.md) | `VERSION_NEUTRAL` no `MetricsController` — `/metrics` corrigido          | BE     | 2026-05-27 |
+| [SPRINT-33](./SPRINT-33.md) | Consolidação do ciclo corretivo (IN/FE no-op formal; ADR-016 atualizada) | DOC    | 2026-05-27 |
 
 ## Convenções
 
