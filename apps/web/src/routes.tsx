@@ -11,7 +11,7 @@ import { AuditPage } from "@/features/audit/AuditPage";
 import { UsersListPage } from "@/features/users/UsersListPage";
 import { NewUserPage } from "@/features/users/NewUserPage";
 import { UserDetailPage } from "@/features/users/UserDetailPage";
-import { VistoriadorAgendaPage } from "@/features/agenda/VistoriadorAgendaPage";
+import { AgendaPage } from "@/features/agenda/AgendaPage";
 
 export const router = createBrowserRouter([
   { path: "/login", Component: LoginPage },
@@ -32,10 +32,8 @@ export const router = createBrowserRouter([
       { path: "users", Component: UsersListPage },
       { path: "users/novo", Component: NewUserPage },
       { path: "users/:id", Component: UserDetailPage },
-      {
-        path: "vistoriadores/:id/agenda",
-        Component: VistoriadorAgendaPage,
-      },
+      { path: "agenda", Component: AgendaPage },
+      { path: "vistoriadores/:id/agenda", Component: AgendaPage },
     ],
   },
 ]);

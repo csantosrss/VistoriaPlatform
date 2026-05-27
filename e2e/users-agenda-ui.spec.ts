@@ -61,20 +61,27 @@ test.describe("Users + Agenda — fluxo pelo navegador", () => {
     );
     await expect(page.getByRole("heading", { name: "Agenda" })).toBeVisible();
 
-    // Preenche o form de novo slot (datetime-local x2).
-    // ISO sem timezone: YYYY-MM-DDTHH:MM
-    await page.getByLabel("Início").fill("2026-06-01T08:00");
-    await page.getByLabel("Fim").fill("2026-06-01T18:00");
-    await page.getByLabel(/Motivo/).fill("Plantão E2E");
-    await page.getByRole("button", { name: "Adicionar slot" }).click();
+    // Sprint 29 FE: a tela agora é calendário mensal com drawer.
+    // Confirma cabeçalho dos dias da semana e clica num dia (15 do mês corrente).
+    await expect(page.getByText("Dom", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: /^15\b/ }).first().click();
 
-    // O slot aparece na tabela com badge "Disponível" e o motivo.
-    await expect(page.getByText("Disponível").first()).toBeVisible();
-    await expect(page.getByText("Plantão E2E")).toBeVisible();
+    // Drawer abre com "+ Novo slot neste dia".
+    const drawer = page.getByRole("complementary");
+    await expect(drawer).toBeVisible();
+    await drawer.getByRole("button", { name: /Novo slot/i }).click();
 
-    // Toggle Bloquear inline.
-    await page.getByRole("button", { name: "Bloquear" }).first().click();
-    await expect(page.getByText("Bloqueado").first()).toBeVisible();
+    // Form inline traz defaults 08:00/09:00 — sobrescreve com plantão de 18h.
+    await drawer
+      .getByLabel("Fim")
+      .fill(
+        new Date(new Date().setHours(18, 0, 0, 0)).toISOString().slice(0, 16),
+      );
+    await drawer.getByPlaceholder(/Motivo/i).fill("Plantão E2E");
+    await drawer.getByRole("button", { name: "Adicionar" }).click();
+
+    // Slot aparece na tabela do drawer com badge "Livre".
+    await expect(drawer.getByText("Livre")).toBeVisible();
   });
 
   test("filtro 'apenas ativos' some o vistoriador desativado", async ({

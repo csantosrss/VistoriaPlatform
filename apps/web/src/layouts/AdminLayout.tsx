@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 import {
   Activity,
+  CalendarDays,
   ClipboardList,
   History,
   LayoutDashboard,
@@ -23,6 +24,7 @@ interface NavItem {
 const NAV_ITEMS: ReadonlyArray<NavItem> = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/vistorias", label: "Vistorias", icon: ClipboardList },
+  { to: "/agenda", label: "Agenda", icon: CalendarDays },
   { to: "/users", label: "Usuários", icon: Users },
   { to: "/audit", label: "Auditoria", icon: History },
   { to: "/health", label: "Status", icon: Activity },

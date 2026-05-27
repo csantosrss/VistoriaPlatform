@@ -1,8 +1,13 @@
 import { apiClient } from "@/lib/api-client";
 import {
   AgendaSlotSchema,
+  BulkOpResponseSchema,
   ListAgendaSlotsResponseSchema,
   type AgendaSlot,
+  type BulkBlockRequest,
+  type BulkDeleteRequest,
+  type BulkOpResponse,
+  type BulkUpdateRequest,
   type CreateAgendaSlotsRequest,
   type ListAgendaSlotsQuery,
   type ListAgendaSlotsResponse,
@@ -50,4 +55,39 @@ export async function deleteAgendaSlot(
   await apiClient.delete(
     `/api/v1/vistoriadores/${vistoriadorId}/agenda/${slotId}`,
   );
+}
+
+/** Sprint 27 BE: substitui N PATCHes paralelos por uma única request em
+ * transação. Bloqueia todos os slots livres no intervalo. */
+export async function bulkBlockAgenda(
+  vistoriadorId: string,
+  input: BulkBlockRequest,
+): Promise<BulkOpResponse> {
+  const { data } = await apiClient.post(
+    `/api/v1/vistoriadores/${vistoriadorId}/agenda:bulk-block`,
+    input,
+  );
+  return BulkOpResponseSchema.parse(data);
+}
+
+export async function bulkUpdateAgenda(
+  vistoriadorId: string,
+  input: BulkUpdateRequest,
+): Promise<BulkOpResponse> {
+  const { data } = await apiClient.post(
+    `/api/v1/vistoriadores/${vistoriadorId}/agenda:bulk-update`,
+    input,
+  );
+  return BulkOpResponseSchema.parse(data);
+}
+
+export async function bulkDeleteAgenda(
+  vistoriadorId: string,
+  input: BulkDeleteRequest,
+): Promise<BulkOpResponse> {
+  const { data } = await apiClient.delete(
+    `/api/v1/vistoriadores/${vistoriadorId}/agenda:bulk-delete`,
+    { data: input },
+  );
+  return BulkOpResponseSchema.parse(data);
 }
